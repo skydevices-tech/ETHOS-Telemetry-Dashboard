@@ -1,4 +1,5 @@
-local inavdash= {}
+-- Use the `inavdash` injected via ENV (from main.lua)
+-- (No local table here—keep a single shared namespace)
 
 -- external library placeholders (load them as a one off in create)
 inavdash.telemetry = nil

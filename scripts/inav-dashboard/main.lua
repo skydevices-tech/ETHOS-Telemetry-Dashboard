@@ -13,16 +13,34 @@ config.key = "inavdsh"
 
 inavdash.config = config
 
+
 -- Shared environment so every chunk sees `inavdash` without touching _G
 local ENV = setmetatable({ inavdash = inavdash }, {
   __index = _G,
-  -- Uncomment to forbid accidental globals from modules:
-   __newindex = function(_, k) error("attempt to create global '"..tostring(k).."'", 2) end
+  -- (Optional) keep this on to catch accidental globals in modules:
+  __newindex = function(_, k) error("attempt to create global '"..tostring(k).."'", 2) end
 })
 
-package.path = package.path .. ";inav-dashboard/?.lua;inav-dashboard/?/init.lua"
-local mod = require("inavdash")                 -- loads inav-dashboard/inavdash.lua
-for k,v in pairs(mod) do inavdash[k]=v end
+-- Make `require` load modules under our shared ENV
+table.insert(package.searchers, 1, function(modname)
+  local fname, search_err = package.searchpath(modname, package.path)
+  if not fname then
+    return ("\n\t[env] no file for module %q (%s)"):format(modname, search_err or "not found")
+  end
+  local loader, load_err = loadfile(fname, "t", ENV)  -- Lua 5.4 env param
+  if not loader then
+    return ("\n\t[env] failed loading %q (%s)"):format(modname, load_err or "unknown error")
+  end
+  return loader, fname
+end)
+
+-- Load the package entry and merge its exports into the root table
+local mod = require("inavdash")   -- runs inside ENV now
+if type(mod) == "table" then
+  for k, v in pairs(mod) do
+    inavdash[k] = v
+  end
+end
 
 
 
