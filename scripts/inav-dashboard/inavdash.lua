@@ -11,7 +11,7 @@ local internalModule = nil
 local externalModule = nil
 
 local supportedResolutions = {
-    -- 800x480 -> Full Screen 
+    -- 800x480 -> X20 Full Screen -> No Title
     ["800x480"] = { 
         ah = { x= 0, y= 0, w= 400, h= 240 },
     },
@@ -22,7 +22,19 @@ local supportedResolutions = {
      -- 800x480 -> Single Widget -> No Title
     ["784x316"] = { 
         ah = { x= 0, y= 0, w= 392, h= 215 }, -- 200 * (316/294) ≈ 215
-    },    
+    },
+    -- 480x320 -> X18 Full Screen -> No Title
+    ["480x320"] = {
+        ah = { x= 0, y= 0, w= 240, h= 160 },
+    }, 
+    -- 480x320 -> Single Widget -> Title 
+    ["472x191"] = {
+        ah = { x= 0, y= 0, w= 236, h= 130 },
+    }, 
+    -- 480x320 -> Single Widget -> No Title
+    ["472x210"] = {
+        ah = { x= 0, y= 0, w= 236, h= 143 },
+    },
 }
 
 -- Determine screen resolution and setup layout
@@ -31,8 +43,13 @@ local function getScreenSizes()
     local resString = string.format("%dx%d", sw, sh)
     if supportedResolutions[resString] then
         inavdash.radios = supportedResolutions[resString]
+    else
+        -- Fallback for unsupported resolutions to prevent Lua errors (maybe not the best solution?)
+        inavdash.radios = {
+            ah = { x = 0, y = 0, w = math.floor(sw * 0.5), h = math.floor(sh * 0.75) }
+        }
+        print("Unsupported screen resolution: " .. resString .. " - using fallback layout")
     end
-
     -- Enable when doing new radios
     -- print("Screen resolution: " .. resString)
 end
