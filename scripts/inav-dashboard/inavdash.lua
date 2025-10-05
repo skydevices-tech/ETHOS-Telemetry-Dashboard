@@ -2,21 +2,47 @@ local inavdash= {}
 
 -- external library placeholders (load them as a one off in create)
 inavdash.telemetry = nil
+inavdash.radios = {}
 inavdash.render = {}
 
+
 local sensors = {}
-local LCD_W
-local LCD_H 
+local internalModule = nil
+local externalModule = nil
+
+local supportedResolutions = {
+    -- 800x480 -> Full Screen 
+    ["800x480"] = { 
+        ah = { x= 0, y= 0, w= 400, h= 240 },
+    },
+     -- 800x480 -> Single Widget -> Title
+    ["784x294"] = { 
+        ah = { x= 0, y= 0, w= 392, h= 200 },
+    },
+     -- 800x480 -> Single Widget -> No Title
+    ["784x316"] = { 
+        ah = { x= 0, y= 0, w= 392, h= 215 }, -- 200 * (316/294) ≈ 215
+    },    
+}
+
+-- Determine screen resolution and setup layout
+local function getScreenSizes()
+    local sw, sh = lcd.getWindowSize()
+    local resString = string.format("%dx%d", sw, sh)
+    if supportedResolutions[resString] then
+        inavdash.radios = supportedResolutions[resString]
+    end
+
+    -- Enable when doing new radios
+    -- print("Screen resolution: " .. resString)
+end
 
 
 function inavdash.create()
 
-    if not inavdash.telemetry then 
-        inavdash.telemetry = assert(loadfile("lib/telemetry.lua"))()
-    end
-    if not inavdash.render.ah then
-        inavdash.render.ah = assert(loadfile("lib/render_ah.lua"))() 
-    end
+    -- load externals
+    if not inavdash.telemetry then  inavdash.telemetry = assert(loadfile("lib/telemetry.lua"))()  end
+    if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("lib/render_ah.lua"))() end
 
 
 end
@@ -28,7 +54,6 @@ end
 function inavdash.paint()
     
     if inavdash.render.ah then
-
         inavdash.render.ah.paint()
     end
 
@@ -38,8 +63,13 @@ end
 
 function inavdash.wakeup()
 
+    -- Get screen sizes and layout if not done yet
+    getScreenSizes()
 
-    LCD_W, LCD_H = lcd.getWindowSize()
+    -- Get telemetry type
+    if inavdash.telemetry then
+        inavdash.telemetry.wakeup()
+    end
 
     -- Load all sensors.
     sensors['voltage'] = inavdash.telemetry.getSensor('voltage')
@@ -59,7 +89,7 @@ function inavdash.wakeup()
             show_altitude = false,
             show_groundspeed = false,
         }
-        inavdash.render.ah.wakeup(sensors, 0, 0, 320, 240, ahconfig)
+        inavdash.render.ah.wakeup(sensors, inavdash.radios.ah.x, inavdash.radios.ah.y, inavdash.radios.ah.w, inavdash.radios.ah.h, ahconfig)
     end
 
 

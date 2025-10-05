@@ -136,16 +136,16 @@ def _lock_path_for_config(config_path: str) -> str:
 def parse_version(v: str):
     return tuple(map(int, v.split(".")))
 
-def check_ethossuite_version(inavdash_bin, min_version=MIN_ETHOSSUITE_VERSION):
+def check_ethossuite_version(ethossuite_bin, min_version=MIN_ETHOSSUITE_VERSION):
     try:
         res = subprocess.run(
-            [inavdash_bin, "--version"],
+            [ethossuite_bin, "--version"],
             text=True,
             capture_output=True,
             timeout=10
         )
     except FileNotFoundError:
-        print(f"[ERROR] Ethos Suite not found at: {inavdash_bin}")
+        print(f"[ERROR] Ethos Suite not found at: {ethossuite_bin}")
         return False
     except subprocess.TimeoutExpired:
         print("[ERROR] Ethos Suite --version timed out.")
@@ -282,7 +282,7 @@ def minify_lua_file(filepath):
     except Exception as e:
         print(f"[MINIFY ERROR] Exception during luamin run: {e}")
 
-def get_ethos_scripts_dir(inavdash_bin, retries=1, delay=5):
+def get_ethos_scripts_dir(ethossuite_bin, retries=1, delay=5):
     """
     Ask Ethos Suite for the SCRIPTS path. Robust against chatty output:
     - Prefer explicit path lines (e.g. 'E:\\scripts')
@@ -291,7 +291,7 @@ def get_ethos_scripts_dir(inavdash_bin, retries=1, delay=5):
     """
     import re, json, string
 
-    cmd = [inavdash_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
+    cmd = [ethossuite_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
     path_re = re.compile(r'^(?:[A-Za-z]:\\|\\\\\?\\|//)[^\r\n]+$')
 
     def _clean(line: str) -> str:
@@ -380,7 +380,7 @@ def get_ethos_scripts_dir(inavdash_bin, retries=1, delay=5):
     """
     import re
 
-    cmd = [inavdash_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
+    cmd = [ethossuite_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
     path_re = re.compile(r'^(?:[A-Za-z]:\\|\\\\\?\\|//)[^\r\n]+$')  # Windows drive, \\?\ or UNC
 
     def _clean(line: str) -> str:
@@ -444,7 +444,7 @@ def get_ethos_scripts_dir(inavdash_bin, retries=1, delay=5):
     Ask Ethos Suite for the SCRIPTS path. Retries after `delay` seconds
     if the tool returns no path or fails. Raises on final failure.
     """
-    cmd = [inavdash_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
+    cmd = [ethossuite_bin, "--get-path", "SCRIPTS", "--radio", "auto"]
     last_err = None
 
     for attempt in range(retries + 1):
@@ -664,13 +664,13 @@ DEFAULT_SERIAL_BAUD = 115200
 DEFAULT_SERIAL_RETRIES = 10
 DEFAULT_SERIAL_DELAY = 1.0    # seconds between attempts
 
-def ethos_serial(inavdash_bin, action, radio=None):
+def ethos_serial(ethossuite_bin, action, radio=None):
     """
     Start/stop Ethos serial debug mode.
     action: 'start' or 'stop'
     Returns (rc, stdout, stderr) and prints tool output.
     """
-    cmd = [inavdash_bin, "--serial", action, "--radio", "auto"]
+    cmd = [ethossuite_bin, "--serial", action, "--radio", "auto"]
     if radio:
         cmd += ["--radio", radio]
     try:
@@ -687,14 +687,14 @@ def ethos_serial(inavdash_bin, action, radio=None):
         return 1, "", str(e)
 
 
-def wait_for_scripts_mount(inavdash_bin, attempts=10, delay=2):
+def wait_for_scripts_mount(ethossuite_bin, attempts=10, delay=2):
     """
     Poll Ethos for the SCRIPTS path until the directory actually exists.
     """
     last_err = None
     for i in range(attempts):
         try:
-            path = get_ethos_scripts_dir(inavdash_bin, retries=0, delay=delay)
+            path = get_ethos_scripts_dir(ethossuite_bin, retries=0, delay=delay)
             if path and os.path.isdir(path):
                 return os.path.normpath(path)
             raise RuntimeError(f"Ethos returned non-directory path: {path!r}")
@@ -1233,14 +1233,14 @@ def main():
         return 1            
 
     # Sanity check Ethos Suite version
-    ethos_bin = config.get('inavdash_bin')
+    ethos_bin = config.get('ethossuite_bin')
     if ethos_bin and not check_ethossuite_version(ethos_bin, min_version=MIN_ETHOSSUITE_VERSION):
         sys.exit(1)
 
     # select targets
     if args.radio and args.connect_only:
         # enable serial mode on the radio
-        ethos_serial(config['inavdash_bin'], 'start')
+        ethos_serial(config['ethossuite_bin'], 'start')
 
         v = str(config.get('serial_vid', DEFAULT_SERIAL_VID))
         p = str(config.get('serial_pid', DEFAULT_SERIAL_PID))
@@ -1254,10 +1254,10 @@ def main():
     elif args.radio:
         # Make sure the radio storage is available (serial OFF => mass storage ON)
         print("[ETHOS] Disabling serial debug before copy to protect filesystem…")
-        ethos_serial(config['inavdash_bin'], 'stop')
+        ethos_serial(config['ethossuite_bin'], 'stop')
         # Wait for the radio drive to mount and obtain the SCRIPTS path
         try:
-            rd = wait_for_scripts_mount(config['inavdash_bin'], attempts=10, delay=2)
+            rd = wait_for_scripts_mount(config['ethossuite_bin'], attempts=10, delay=2)
         except Exception as e:
             print("[ERROR] Failed to obtain Ethos SCRIPTS path after disabling serial.")
             print(f"        Reason: {e}")
@@ -1306,15 +1306,15 @@ def main():
     
     # If deploying to radio without debug, still re-enable serial
     if args.radio and not args.radio_debug:
-        ethos_serial(config['inavdash_bin'], 'start')
+        ethos_serial(config['ethossuite_bin'], 'start')
 
     # If deploying to radio WITH debug, (re)enable serial and attach with retries
     if args.radio and args.radio_debug:
         _kill_previous_tail_if_any()
-        rc, _, _ = ethos_serial(config['inavdash_bin'], 'start')
+        rc, _, _ = ethos_serial(config['ethossuite_bin'], 'start')
         if rc != 0:
             print("[ETHOS] First --serial start failed; retrying once…")
-            ethos_serial(config['inavdash_bin'], 'start')
+            ethos_serial(config['ethossuite_bin'], 'start')
 
         v = str(config.get('serial_vid', DEFAULT_SERIAL_VID))
         p = str(config.get('serial_pid', DEFAULT_SERIAL_PID))

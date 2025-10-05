@@ -4,7 +4,33 @@ local arg = {...}
 local telemetry = {}
 local protocol, telemetrySOURCE, crsfSOURCE
 
-local telemetryType = "sport"  -- "crsf" or "sport"
+local currentTelemetrySensor = nil
+local currentTelemetryType = nil
+local internalModule = nil
+local externalModule = nil
+
+
+local function getTelemetryType()
+
+    -- only do heavy calls when we *don’t* already have a sensor
+    if not internalModule or not externalModule then
+        internalModule = model.getModule(0)
+        externalModule = model.getModule(1)
+    end
+
+    if internalModule and internalModule:enable() then
+        currentTelemetrySensor      = system.getSource({ appId = 0xF101 })
+        currentTelemetryType = "sport"
+    elseif externalModule and externalModule:enable() then
+        currentTelemetrySensor       = system.getSource({ crsfId = 0x14, subIdStart = 0, subIdEnd = 1 })
+        currentTelemetryType = "crsf"
+        if not currentTelemetrySensor then
+            currentTelemetrySensor      = system.getSource({ appId = 0xF101 })
+            currentTelemetryType = "sport"
+        end
+    end
+end
+
 
 -- Lightweight cache for resolved Source objects.
 -- Keyed by "<protocol>|<sensorKey>". Weak values let GC clean up sources.
@@ -212,7 +238,7 @@ function telemetry.getSensorSource(name)
         return cached
     end
 
-if telemetryType == "crsf" then
+if currentTelemetryType  == "crsf" then
             protocol = "crsf"
             for _, sensor in ipairs(sensorTable[name].sensors.crsf or {}) do
                 local source = system.getSource(sensor)
@@ -221,7 +247,7 @@ if telemetryType == "crsf" then
                     return source
                 end
             end
-    elseif telemetryType == "sport" then
+    elseif currentTelemetryType  == "sport" then
             protocol = "sport"
             for _, sensor in ipairs(sensorTable[name].sensors.sport or {}) do
                 local source = system.getSource(sensor)
@@ -264,5 +290,11 @@ function telemetry.getSensor(sensorKey)
     return value, major, minor
 end
 
+function telemetry.wakeup()
+    -- Determine telemetry type
+    getTelemetryType()
+
+
+end
 
 return telemetry
