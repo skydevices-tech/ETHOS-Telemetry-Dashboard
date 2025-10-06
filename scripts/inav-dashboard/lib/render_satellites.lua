@@ -1,9 +1,12 @@
-local render_lib = {}
+local render = {}
 
+-- optional: ASCII-only skeleton for width calc when fonts mis-measure multibyte glyphs
+local function ascii_skeleton(s)
+    return (s or ""):gsub("[\128-\255]", "x")
+end
 
-local render_lib = {}
+function render.paint(x, y, w, h, label, value, unit, opts)
 
-function render_lib.telemetryBox(x, y, w, h, label, value, unit, opts)
     -- fallbacks
     if value == nil then value = "-" end
     opts = opts or {}
@@ -12,6 +15,8 @@ function render_lib.telemetryBox(x, y, w, h, label, value, unit, opts)
     if not opts.colorlabel then opts.colorlabel = lcd.RGB(200, 200, 200) end
     if not opts.fontvalue  then opts.fontvalue  = FONT_STD end
     if not opts.fontlabel  then opts.fontlabel  = FONT_S end
+    -- optional toggle for ASCII width fallback (default off)
+    if opts.widthAsciiFallback == nil then opts.widthAsciiFallback = false end
 
     -- background
     lcd.color(opts.colorbg)
@@ -29,17 +34,28 @@ function render_lib.telemetryBox(x, y, w, h, label, value, unit, opts)
     -- compute offset so value sits a bit below the title line (toolbox style)
     local offsetY = lh - 3
 
-    -- draw centered value (with unit)
-    local valueText = (tostring(value) or "-") .. (unit and (" " .. unit) or "")
+    -- draw centered value (unit drawn separately to avoid alignment issues)
+    local valueStr = tostring(value)
+    local unitStr  = unit and tostring(unit) or nil
+
     lcd.font(opts.fontvalue)
-    local vw, vh = lcd.getTextSize(valueText)
+
+    -- width for centering is based ONLY on the numeric value
+    local measureValue = opts.widthAsciiFallback and ascii_skeleton(valueStr) or valueStr
+    local vw, vh = lcd.getTextSize(measureValue)
+
     local vx = x + (w - vw) / 2
     -- center vertically within the box, then push down by the title offset
     local vy = y + (h - vh) / 2 + offsetY
+
     lcd.color(opts.colorvalue)
-    lcd.drawText(vx, vy, valueText)
+    lcd.drawText(vx,  vy, valueStr)
+
+    -- draw unit to the right, so it never affects centering
+    if unitStr and unitStr ~= "" then
+        local gap = 4 -- small fixed space between number and unit
+        lcd.drawText(vx + vw + gap, vy, unitStr)
+    end
 end
 
-
-
-return render_lib
+return render

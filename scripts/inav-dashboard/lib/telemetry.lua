@@ -139,8 +139,7 @@ local sensorTable = {
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0100 } 
             
             },
-            crsf  = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x10B2 }, },
-            crsfLegacy = { nil },
+            crsf  = { "GPS alt"},
         },
     },    
 
@@ -164,7 +163,7 @@ local sensorTable = {
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x5210 }, 
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0830 },
             },
-            crsf = { "Yaw" },
+            crsf = { "GPS Heading" },
         },
     },
 
@@ -194,8 +193,7 @@ local sensorTable = {
         name = "Ground Speed",
         sensors = {
             sport = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0830, subId = 0 }, },
-            crsf  = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x1128 }, },
-            crsfLegacy = { nil },
+            crsf  = { "GPS speed"},
         },
     },    
 
@@ -206,8 +204,7 @@ local sensorTable = {
                     { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0480, subId = 0 }, 
                     { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0410, subId = 0 }, 
                     },
-            crsf = { 
-                    "GPS Satellites" },
+            crsf = { "GPS Satellites" },
         },
     },    
     
