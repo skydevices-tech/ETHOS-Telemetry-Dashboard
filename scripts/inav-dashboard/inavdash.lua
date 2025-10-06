@@ -11,58 +11,85 @@ local sensors = {}
 local internalModule = nil
 local externalModule = nil
 
-local supportedResolutions = {
-    -- 800x480 -> X20 Full Screen -> No Title
-    ["800x480"] = { 
-        ah = { x= 0, y= 2, w= 400, h= 240 },
-    },
-     -- 800x480 -> Single Widget -> Title
-    ["784x294"] = { 
-        ah = { x= 0, y= 2, w= 392, h= 200 },
-        altitude = {x= 396, y=2, w= 150, h= 80 }, 
-    },
-     -- 800x480 -> Single Widget -> No Title
-    ["784x316"] = { 
-        ah = { x= 0, y= 2, w= 392, h= 215 }, -- 200 * (316/294) ≈ 215
-    },
-    -- 480x320 -> X18 Full Screen -> No Title
-    ["480x320"] = {
-        ah = { x= 0, y= 2, w= 240, h= 160 },
-    }, 
-    -- 480x320 -> Single Widget -> Title 
-    ["472x191"] = {
-        ah = { x= 0, y= 2, w= 236, h= 130 },
-    }, 
-    -- 480x320 -> Single Widget -> No Title
-    ["472x210"] = {
-        ah = { x= 0, y= 2, w= 236, h= 143 },
-    },
+-- === One grid layout for all resolutions ===
+-- Think only in grid units; it auto-resolves to pixels at runtime.
+
+-- Define your grid once
+local GRID = {
+  cols   = 30,   -- change to taste
+  rows   = 8,
+  pad    = 2,   -- pixel gap between cells
+  header = 0,   -- reserve a fixed px header if you ever need a title bar
 }
 
--- Determine screen resolution and setup layout
-local function getScreenSizes()
-    local sw, sh = lcd.getWindowSize()
-    local resString = string.format("%dx%d", sw, sh)
-    if supportedResolutions[resString] then
-        inavdash.radios = supportedResolutions[resString]
-    else
-        -- Fallback for unsupported resolutions to prevent Lua errors (maybe not the best solution?)
-        inavdash.radios = {
-            ah = { x = 0, y = 0, w = math.floor(sw * 0.5), h = math.floor(sh * 0.75) }
-        }
-        print("Unsupported screen resolution: " .. resString .. " - using fallback layout")
-    end
-    -- Enable when doing new radios
-    -- print("Screen resolution: " .. resString)
+-- Place widgets in grid terms (col/row are 1-based)
+local GRID_WIDGETS = {
+  -- Full-bleed AH across the whole grid:
+  ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 6 },
+  map           =  { col = 17, row = 1, colspan = 10, rowspan = 6 },
+  altitude      =  { col = 27, row = 1, colspan = 4,  rowspan = 2 },
+  groundspeed   =  { col = 27, row = 3, colspan = 4,  rowspan = 2 },  
+  heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 2 },
+  satellites    =  { col = 27, row = 7, colspan = 4,  rowspan = 2 },
+
+}
+
+-- Convert one grid definition to pixel rects (inspired by dashboard.lua)
+local function computeGridRects(sw, sh, grid, widgets)
+  local cols   = math.max(1, grid.cols or 1)
+  local rows   = math.max(1, grid.rows or 1)
+  local pad    = grid.pad or 0
+  local header = grid.header or 0
+
+  local W_raw, H_raw = sw, sh
+  local W, H = W_raw, H_raw - header
+
+  local function adjustDimension(dim, cells, padCount)
+    return dim - ((dim - padCount * pad) % cells)
+  end
+
+  -- make width/height divisible by grid + padding (like dashboard.lua)
+  W = adjustDimension(W, cols, cols - 1)
+  H = adjustDimension(H, rows, rows + 1) -- +1 so first row sits below a pad
+
+  local xOffset = math.floor((W_raw - W) / 2)
+
+  local contentW = W - ((cols - 1) * pad)
+  local contentH = H - ((rows + 1) * pad)
+  local cellW    = contentW / cols
+  local cellH    = contentH / rows
+
+  local rects = {}
+  for name, box in pairs(widgets or {}) do
+    local c  = math.max(1, math.min(cols, box.col or 1))
+    local r  = math.max(1, math.min(rows, box.row or 1))
+    local cs = math.max(1, math.min(cols - c + 1, box.colspan or 1))
+    local rs = math.max(1, math.min(rows - r + 1, box.rowspan or 1))
+
+    local w  = math.floor(cs * cellW + (cs - 1) * pad)
+    local h  = math.floor(rs * cellH + (rs - 1) * pad)
+
+    local x  = math.floor((c - 1) * (cellW + pad)) + xOffset
+    local y  = math.floor(pad + (r - 1) * (cellH + pad)) + header
+
+    rects[name] = { x = x, y = y, w = w, h = h }
+  end
+  return rects
 end
 
+-- Replace the old per-resolution logic with a single compute
+local function getScreenSizes()
+  local sw, sh = lcd.getWindowSize()
+  inavdash.radios = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
+end
 
 function inavdash.create()
 
     -- load externals
     if not inavdash.telemetry then  inavdash.telemetry = assert(loadfile("lib/telemetry.lua"))()  end
-    if not inavdash.render.lib then inavdash.render.lib = assert(loadfile("lib/render_lib.lua"))() end
+    if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("lib/render_telemetry.lua"))() end
     if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("lib/render_ah.lua"))() end
+    if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("lib/render_satellites.lua"))() end
 
 
 end
@@ -79,13 +106,25 @@ function inavdash.paint()
     lcd.color(lcd.RGB(0,0,0))
     lcd.drawFilledRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT)
     
+    -- Artificial Horizon
     if inavdash.render.ah then
         -- positions are pre-calculated in wakeup
         inavdash.render.ah.paint()
     end
 
-    if inavdash.render.lib then
-        -- Altitude box example
+    if inavdash.render.telemetry then
+
+        -- Map
+        local opts = {
+            colorbg = lcd.RGB(0,114,0),
+            colorvalue = lcd.RGB(255,255,255),
+            colorlabel = lcd.RGB(200,200,200),
+            fontvalue = FONT_L,
+            fontlabel = FONT_S,
+        }
+        inavdash.render.telemetry.paint(inavdash.radios.map.x, inavdash.radios.map.y, inavdash.radios.map.w, inavdash.radios.map.h, "Map", "COMING SOON", "", opts)
+
+        -- Altitude
         local opts = {
             colorbg = lcd.RGB(40,40,40),
             colorvalue = lcd.RGB(255,255,255),
@@ -93,7 +132,45 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_S,
         }
-        inavdash.render.lib.telemetryBox(inavdash.radios.altitude.x, inavdash.radios.altitude.y, inavdash.radios.altitude.w, inavdash.radios.altitude.h, "Altitude", sensors['altitude'], "M", opts)
+        inavdash.render.telemetry.paint(inavdash.radios.altitude.x, inavdash.radios.altitude.y, inavdash.radios.altitude.w, inavdash.radios.altitude.h, "Altitude", sensors['altitude'], "M", opts)
+
+        -- Ground Speed
+        local opts = {
+            colorbg = lcd.RGB(40,40,40),
+            colorvalue = lcd.RGB(255,255,255),
+            colorlabel = lcd.RGB(200,200,200),
+            fontvalue = FONT_L,
+            fontlabel = FONT_S,
+        }
+        inavdash.render.telemetry.paint(inavdash.radios.groundspeed.x, inavdash.radios.groundspeed.y, inavdash.radios.groundspeed.w, inavdash.radios.groundspeed.h, "Speed", sensors['groundspeed'], "", opts)
+
+
+        -- Distance
+        local opts = {
+            colorbg = lcd.RGB(40,40,40),
+            colorvalue = lcd.RGB(255,255,255),
+            colorlabel = lcd.RGB(200,200,200),
+            fontvalue = FONT_L,
+            fontlabel = FONT_S,
+        }
+        inavdash.render.telemetry.paint(inavdash.radios.heading.x, inavdash.radios.heading.y, inavdash.radios.heading.w, inavdash.radios.heading.h, "Heading", sensors['heading'], "°", opts)
+
+        -- Satellites
+        if inavdash.render.satellites then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_S,
+            }
+            inavdash.render.satellites.paint(inavdash.radios.satellites.x, inavdash.radios.satellites.y, inavdash.radios.satellites.w, inavdash.radios.satellites.h, "Satellites",sensors['satellites'], "", opts)
+        end
+
+
+
+
+
     end
 
 
