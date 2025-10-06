@@ -8,6 +8,7 @@ local currentTelemetrySensor = nil
 local currentTelemetryType = nil
 local internalModule = nil
 local externalModule = nil
+local telemetryType
 
 
 local function getTelemetryType()
@@ -208,8 +209,31 @@ local sensorTable = {
         },
     },    
     
-
+    gps_latitude = {
+        name = "GPS Latitude",
+        sensors = {
+            sport = { 
+                    {name="GPS", options=OPTION_LATITUDE},
+                    },
+            crsf = { 
+                    {name="GPS", options=OPTION_LATITUDE},
+                    },
+        },
+    },  
     
+    gps_longitude= {
+        name = "GPS Longitude",
+        sensors = {
+            sport = { 
+                    {name="GPS", options=OPTION_LONGITUDE},
+                    },
+            crsf = { 
+                    {name="GPS", options=OPTION_LONGITUDE},
+                    },
+        },
+    },  
+
+
 }
 
 --[[ 
@@ -235,7 +259,7 @@ function telemetry.getSensorSource(name)
         return cached
     end
 
-if currentTelemetryType  == "crsf" then
+    if currentTelemetryType  == "crsf" then
             protocol = "crsf"
             for _, sensor in ipairs(sensorTable[name].sensors.crsf or {}) do
                 local source = system.getSource(sensor)
@@ -286,6 +310,7 @@ function telemetry.getSensor(sensorKey)
 
     return value, major, minor
 end
+
 
 function telemetry.wakeup()
     -- Determine telemetry type
