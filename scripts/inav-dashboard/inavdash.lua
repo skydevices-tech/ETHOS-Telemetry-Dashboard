@@ -221,8 +221,6 @@ function inavdash.paint()
         inavdash.render.telemetry.paint(inavdash.radios.rssi.x, inavdash.radios.rssi.y, inavdash.radios.rssi.w, inavdash.radios.rssi.h, "RSSI", sensors['rssi'], "%", opts)
 
 
-
-
     end
 
     -- Satellites
@@ -290,8 +288,8 @@ function inavdash.wakeup()
     -- Parameters (tune to taste)
     local MIN_SATS       = 6
     local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
-    local WINDOW_SAMPLES = 30      -- how many recent samples to check
-    local WANDER_METERS  = 8       -- max radius of wander to accept
+    local WINDOW_SAMPLES = 20      -- how many recent samples to check
+    local WANDER_METERS  = 5       -- max radius of wander to accept
 
     -- only try to lock when GPS looks valid and we have a position
     if sats >= MIN_SATS and lat and lon then
@@ -324,7 +322,9 @@ function inavdash.wakeup()
             if ok and maxR <= WANDER_METERS then
             st.home_lat, st.home_lon = cLat, cLon
             st._locked = true
-            end
+            
+            if system and system.playTone then system.playTone(1000, 500, 0) end 
+        end
         end
         end
     end
@@ -346,23 +346,24 @@ function inavdash.wakeup()
 
     if inavdash.render.map then
     local opts = {
-        trail_len = 60,
-        ppm = 1.0,         -- keep if you want to force-zoom; remove to auto-zoom
-        north_up = false,
-        show_grid = true,
-        colors = {
+    north_up = false,
+    show_grid = true,
+    colors = {
         bg    = lcd.RGB(0, 60, 0),
         grid  = lcd.RGB(0, 90, 0),
         trail = lcd.RGB(170, 220, 170),
         own   = lcd.RGB(255, 255, 255),
         home  = lcd.RGB(255, 255, 255),
         text  = lcd.RGB(255, 255, 255),
-        },
-        -- provide home here if your sensors don’t have it:
-        home = {
-            lat = sensors['home_latitude']  or (inavdash.state and inavdash.state.home_lat) or 0,
-            lon = sensors['home_longitude'] or (inavdash.state and inavdash.state.home_lon) or 0,
-        },
+    },
+    -- only provide home once locked:
+    home = (inavdash.state and inavdash.state._locked) and {
+        lat = inavdash.state.home_lat,
+        lon = inavdash.state.home_lon,
+    } or nil,
+
+    -- optional: reduce draw load for ~2s when GPS first appears
+    light_on_gps_ms = 2000,
     }
 
     local s = {
