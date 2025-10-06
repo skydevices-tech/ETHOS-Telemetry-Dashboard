@@ -11,6 +11,8 @@ local sensors = {}
 local internalModule = nil
 local externalModule = nil
 
+
+
 -- === One grid layout for all resolutions ===
 -- Think only in grid units; it auto-resolves to pixels at runtime.
 
@@ -37,6 +39,29 @@ local GRID_WIDGETS = {
   fuel          =  { col = 9,  row = 7, colspan = 4,  rowspan = 3 },
   rssi          =  { col = 13, row = 7, colspan = 4,  rowspan = 3 },
 }
+
+-- State detection for home position
+inavdash.state = inavdash.state or {
+  home_lat = nil,
+  home_lon = nil,
+  _samples = {},
+  _si = 1,
+  _locked = false,
+}
+
+
+local function meters_per_deg(lat_deg)
+  local lat = math.rad(lat_deg or 0)
+  return 111320.0, 111320.0 * math.cos(lat)
+end
+
+local function enu_dxdy(lat, lon, lat0, lon0)
+  if not lat or not lon or not lat0 or not lon0 then return 1e9, 1e9 end
+  local mlat, mlon = meters_per_deg(lat0)
+  return (lon - lon0) * mlon, (lat - lat0) * mlat
+end
+
+local function hypot(x, y) return math.sqrt((x or 0)^2 + (y or 0)^2) end
 
 -- Convert one grid definition to pixel rects (inspired by dashboard.lua)
 local function computeGridRects(sw, sh, grid, widgets)
@@ -95,6 +120,7 @@ function inavdash.create()
     if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("lib/render_ah.lua"))() end
     if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("lib/render_satellites.lua"))() end
     if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("lib/render_gps.lua"))() end
+    if not inavdash.render.map then inavdash.render.map = assert(loadfile("lib/render_map.lua"))() end
 
 end
 
@@ -116,17 +142,12 @@ function inavdash.paint()
         inavdash.render.ah.paint()
     end
 
-    if inavdash.render.telemetry then
+    -- Map
+    if inavdash.render.map then
+         inavdash.render.map.paint()
+    end            
 
-        -- Map
-        local opts = {
-            colorbg = lcd.RGB(0,114,0),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.radios.map.x, inavdash.radios.map.y, inavdash.radios.map.w, inavdash.radios.map.h, "Map", "COMING SOON", "", opts)
+    if inavdash.render.telemetry then
 
         -- Altitude
         local opts = {
@@ -257,6 +278,63 @@ function inavdash.wakeup()
     sensors['gps_latitude'] = inavdash.telemetry.getSensor('gps_latitude')
     sensors['gps_longitude'] = inavdash.telemetry.getSensor('gps_longitude')
 
+
+    -- === Home locker (no FC home required) ===
+    do
+    local st   = inavdash.state
+    local sats = tonumber(sensors['satellites']) or 0
+    local lat  = tonumber(sensors['gps_latitude'])
+    local lon  = tonumber(sensors['gps_longitude'])
+    local gs   = tonumber(sensors['groundspeed']) or 0
+
+    -- Parameters (tune to taste)
+    local MIN_SATS       = 6
+    local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
+    local WINDOW_SAMPLES = 30      -- how many recent samples to check
+    local WANDER_METERS  = 8       -- max radius of wander to accept
+
+    -- only try to lock when GPS looks valid and we have a position
+    if sats >= MIN_SATS and lat and lon then
+        -- ring buffer of recent GPS points (lat/lon)
+        st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
+        st._si = (st._si % WINDOW_SAMPLES) + 1
+
+        if not st._locked then
+        -- need the window to be full
+        if #st._samples >= WINDOW_SAMPLES then
+            -- compute "center" (simple average) and max radius
+            local sumLat, sumLon, maxR = 0, 0, 0
+            for i=1,WINDOW_SAMPLES do
+            sumLat = sumLat + (st._samples[i].lat or lat)
+            sumLon = sumLon + (st._samples[i].lon or lon)
+            end
+            local cLat = sumLat / WINDOW_SAMPLES
+            local cLon = sumLon / WINDOW_SAMPLES
+
+            -- check wander & speed
+            local ok = true
+            for i=1,WINDOW_SAMPLES do
+            local s = st._samples[i]
+            local dx, dy = enu_dxdy(s.lat, s.lon, cLat, cLon)
+            local r = hypot(dx, dy)
+            if r > maxR then maxR = r end
+            if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
+            end
+
+            if ok and maxR <= WANDER_METERS then
+            st.home_lat, st.home_lon = cLat, cLon
+            st._locked = true
+            end
+        end
+        end
+    end
+
+    -- Optional: simple manual clear (e.g., if you add a menu later)
+    -- if some_condition then st.home_lat, st.home_lon, st._locked, st._samples, st._si = nil, nil, false, {}, 1 end
+    end
+
+
+
     if inavdash.render.ah then
         local ahconfig = {
             ppd = 2.0,
@@ -265,6 +343,41 @@ function inavdash.wakeup()
         }
         inavdash.render.ah.wakeup(sensors, inavdash.radios.ah.x, inavdash.radios.ah.y, inavdash.radios.ah.w, inavdash.radios.ah.h, ahconfig)
     end
+
+    if inavdash.render.map then
+    local opts = {
+        trail_len = 60,
+        ppm = 1.0,         -- keep if you want to force-zoom; remove to auto-zoom
+        north_up = false,
+        show_grid = true,
+        colors = {
+        bg    = lcd.RGB(0, 60, 0),
+        grid  = lcd.RGB(0, 90, 0),
+        trail = lcd.RGB(170, 220, 170),
+        own   = lcd.RGB(255, 255, 255),
+        home  = lcd.RGB(255, 255, 255),
+        text  = lcd.RGB(255, 255, 255),
+        },
+        -- provide home here if your sensors don’t have it:
+        home = {
+            lat = sensors['home_latitude']  or (inavdash.state and inavdash.state.home_lat) or 0,
+            lon = sensors['home_longitude'] or (inavdash.state and inavdash.state.home_lon) or 0,
+        },
+    }
+
+    local s = {
+        latitude    = sensors['gps_latitude'],
+        longitude   = sensors['gps_longitude'],
+        heading     = sensors['heading'],
+        groundspeed = sensors['groundspeed'],
+        home_lat    = sensors['home_latitude'],   -- if available
+        home_lon    = sensors['home_longitude'],  -- if available
+    }
+
+    local box = inavdash.radios.map
+    inavdash.render.map.wakeup(s, box.x, box.y, box.w, box.h, opts)
+    end
+
 
 
     -- Paint only if we are on screen
