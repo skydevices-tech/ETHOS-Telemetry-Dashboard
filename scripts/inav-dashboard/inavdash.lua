@@ -326,7 +326,7 @@ function inavdash.wakeup()
 
         -- Parameters (tune to taste)
         local MIN_SATS       = 6
-        local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
+        local MAX_SPEED_MPS  = 1.5     -- consider "steady" below this
         local WINDOW_SAMPLES = 10      -- how many recent samples to check
         local WANDER_METERS  = 10      -- max radius of wander to accept
 
@@ -396,6 +396,7 @@ function inavdash.wakeup()
     north_up = false,
     show_grid = true,
     home_icon = "gfx/home.png",
+    own_icon  = "gfx/arrow.png",
     show_speed_vec = false,
     colors = {
         bg    = lcd.RGB(0, 60, 0),

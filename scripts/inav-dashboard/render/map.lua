@@ -7,6 +7,69 @@ local RenderMap = {
   _light_until = nil,   -- optional light mode timestamp (ms)
 }
 
+-- === bitmap caches ===
+RenderMap._icons = RenderMap._icons or {
+  home_path = nil, home = nil,
+  own_path  = nil, own  = nil,
+}
+RenderMap._rot_cache = RenderMap._rot_cache or { angle = nil, bmp = nil }  -- rotated ownship
+
+local function _resolve_bitmap(bmp_or_path)
+  if not bmp_or_path then return nil end
+  if type(bmp_or_path) == "string" then
+    local ok, handle = pcall(lcd.loadBitmap, bmp_or_path)
+    return ok and handle or nil
+  end
+  return bmp_or_path
+end
+
+local function _bmp_size(bmp)
+  if not bmp then return 0, 0 end
+  local w = (bmp.width and bmp:width()) or (bmp.getWidth and bmp:getWidth()) or bmp.w or 0
+  local h = (bmp.height and bmp:height()) or (bmp.getHeight and bmp:getHeight()) or bmp.h or 0
+  return tonumber(w) or 0, tonumber(h) or 0
+end
+
+local function _set_icon(which, src)
+  local path = type(src) == "string" and src or nil
+  local cache = RenderMap._icons
+  -- reload only if path/handle changed
+  if path and cache[which .. "_path"] ~= path then
+    cache[which .. "_path"] = path
+    cache[which] = _resolve_bitmap(path)
+  elseif type(src) ~= "string" then
+    cache[which .. "_path"] = nil
+    cache[which] = src
+  end
+end
+
+local function _dispose_rotated()
+  local rc = RenderMap._rot_cache
+  if rc.bmp and rc.bmp.delete then
+    pcall(function() rc.bmp:delete() end)
+  end
+  rc.bmp = nil
+  rc.angle = nil
+end
+
+
+-- --- bitmap helpers ---
+local function _resolve_bitmap(bmp_or_path)
+  if type(bmp_or_path) == "string" then
+    local ok, handle = pcall(lcd.loadBitmap, bmp_or_path)
+    return ok and handle or nil
+  end
+  return bmp_or_path
+end
+
+local function _bmp_size(bmp)
+  if not bmp then return 0, 0 end
+  -- Ethos bitmaps generally expose width/height as methods
+  local w = (bmp.width and bmp:width()) or (bmp.getWidth and bmp:getWidth()) or bmp.w or 0
+  local h = (bmp.height and bmp:height()) or (bmp.getHeight and bmp:getHeight()) or bmp.h or 0
+  return tonumber(w) or 0, tonumber(h) or 0
+end
+
 local function meters_per_deg(lat_deg)
   local lat = math.rad(lat_deg or 0)
   return 111320.0, 111320.0 * math.cos(lat)
@@ -175,6 +238,11 @@ function RenderMap.wakeup(sensors, x, y, w, h, opts)
     RenderMap._light_until = lcd.getTime() + (opts.light_on_gps_ms or 2000)
   end
 
+ -- capture/resolve icons (load once; no per-frame loads)
+  local o = opts or {}
+  _set_icon("home", o.home_icon)
+  _set_icon("own",  o.own_icon)
+
   -- Primitive frame
   RenderMap._frame = {
     box     = {x=x, y=y, w=w, h=h},
@@ -184,15 +252,13 @@ function RenderMap.wakeup(sensors, x, y, w, h, opts)
     own_tri = own_tri,
     home_xy = { x = x + hx, y = y + hy },
     spd_vec = (vx and vy) and { cx, cy, vx, vy } or nil,
-    readout = {
-      gs = gs,
-      dist = dist_m,
-      brg = brg
-    },
-    show_grid = (opts.show_grid ~= false),
-    north_up  = (opts.north_up == true),
+    readout = { gs = gs, dist = dist_m, brg = brg },
+    show_grid = (o.show_grid ~= false),
+    north_up  = (o.north_up == true),
+    opts      = { angle_step = o.angle_step or 10 }, -- quantize rotation to reduce churn
   }
 end
+
 
 -- Pure renderer
 function RenderMap.paint()
@@ -221,18 +287,13 @@ function RenderMap.paint()
     for gy = y, y+h, step do dline(x, gy, x+w, gy) end
   end
 
-  -- home icon (Ethos-safe: triangles + rectangles only)
+  -- home icon (bitmap if provided, else fallback)
   do
     local hx, hy = F.home_xy.x, F.home_xy.y
-    if opts and opts.home_icon then
-      -- expects opts.home_icon = "path/to/home.bmp" or a preloaded bitmap handle
-      if type(opts.home_icon) == "string" then
-        lcd.drawBitmap(hx - 8, hy - 8, lcd.loadBitmap(opts.home_icon))
-      else
-        lcd.drawBitmap(hx - 8, hy - 8, opts.home_icon)
-      end
+    local hbmp = RenderMap._icons.home
+    if hbmp then
+      lcd.drawBitmap(i(hx - 8), i(hy - 8), hbmp)
     else
-      -- fallback to simple shape
       lcd.color(F.colors.home)
       local s = 6
       dtri(hx - s, hy - s, hx, hy - 2*s, hx + s, hy - s, true)
@@ -240,10 +301,32 @@ function RenderMap.paint()
     end
   end
 
-  -- ownship
-  lcd.color(F.colors.own)
-  local t = F.own_tri
-  dtri(t[1],t[2], t[3],t[4], t[5],t[6], true)
+  -- ownship (bitmap if provided, rotated-cached; else triangle)
+  do
+    local obmp = RenderMap._icons.own
+    if obmp and obmp.rotate then
+      local cx, cy = F.box.x + F.box.w/2, F.box.y + F.box.h/2
+      local step = (F.opts and F.opts.angle_step) or 10
+      local ang  = (F.mapRot or 0) % 360
+      local bucket = step > 0 and (math.floor((ang + step/2)/step) * step) or ang
+
+      local rc = RenderMap._rot_cache
+      if rc.angle ~= bucket or not rc.bmp then
+        -- replace cached rotation
+        _dispose_rotated()
+        rc.bmp = obmp:rotate(bucket)
+        rc.angle = bucket
+      end
+
+      local rw, rh = _bmp_size(rc.bmp)
+      lcd.drawBitmap(i(cx - rw/2), i(cy - rh/2), rc.bmp)
+    else
+      -- fallback triangle
+      lcd.color(F.colors.own)
+      local t = F.own_tri
+      dtri(t[1],t[2], t[3],t[4], t[5],t[6], true)
+    end
+  end
 
   -- speed vector
   if F.spd_vec then
