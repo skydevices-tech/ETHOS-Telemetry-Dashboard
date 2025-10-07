@@ -1,60 +1,114 @@
 local render = {}
+local radio = assert(loadfile("radios.lua"))()
 
--- optional: ASCII-only skeleton for width calc when fonts mis-measure multibyte glyphs
+-- ASCII-only skeleton for width calc when fonts mis-measure multibyte glyphs
 local function ascii_skeleton(s)
     return (s or ""):gsub("[\128-\255]", "x")
 end
 
-function render.paint(x, y, w, h, label, value, unit, opts)
+-- Pick the largest font where (value + gap + unit) fits
+local function chooseFontForPair(valueStr, unitStr, gap, maxW, maxH, fonts, useAscii)
+    local function measure(font)
+        lcd.font(font)
+        local vMeasure = useAscii and ascii_skeleton(valueStr) or valueStr
+        local uMeasure = useAscii and ascii_skeleton(unitStr)  or unitStr
+        local vw, vh = lcd.getTextSize(vMeasure)
+        local uw, uh = 0, 0
+        if unitStr ~= "" then uw, uh = lcd.getTextSize(uMeasure) end
+        local cw = vw + (unitStr ~= "" and (gap + uw) or 0)
+        local ch = math.max(vh, uh)
+        return cw, ch, vw, vh, uw, uh
+    end
 
+    local best = { font = fonts[1], cw = 0, ch = 0, vw = 0, vh = 0, uw = 0, uh = 0 }
+    for _, f in ipairs(fonts) do
+        local cw, ch, vw, vh, uw, uh = measure(f)
+        if cw <= maxW and ch <= maxH then
+            best = { font = f, cw = cw, ch = ch, vw = vw, vh = vh, uw = uw, uh = uh }
+        else
+            break -- fonts small→large; stop when it no longer fits
+        end
+    end
+    lcd.font(best.font)
+    return best
+end
+
+
+function render.paint(x, y, w, h, label, value, unit, opts)
     -- fallbacks
     if value == nil then value = "-" end
     opts = opts or {}
     if not opts.colorbg    then opts.colorbg    = lcd.RGB(0, 0, 0) end
     if not opts.colorvalue then opts.colorvalue = lcd.RGB(255, 255, 255) end
-    if not opts.colorlabel then opts.colorlabel = lcd.RGB(200, 200, 200) end
-    if not opts.fontvalue  then opts.fontvalue  = FONT_STD end
-    if not opts.fontlabel  then opts.fontlabel  = FONT_S end
-    -- optional toggle for ASCII width fallback (default off)
+    if not opts.colorlabel then opts.colorlabel = (lcd.darkMode() and lcd.RGB(154,154,154)) or lcd.RGB(77,73,77) end
     if opts.widthAsciiFallback == nil then opts.widthAsciiFallback = false end
+
+    ----------------------------------------------------------------
+    -- If the value looks like an INAV composite (status + sats),
+    -- extract only the numeric satellite count.
+    ----------------------------------------------------------------
+    do
+        if type(value) == "string" then
+            local s = value:gsub("^%s+", ""):gsub("%s+$", "")
+            if s ~= "" then
+                -- If it's something like "2:12" or "1 07", grab the last number
+                local sats_str = s:match("(%d+)$")
+                if sats_str then
+                    value = tonumber(sats_str) or value
+                end
+            end
+        end
+    end
+    ----------------------------------------------------------------
 
     -- background
     lcd.color(opts.colorbg)
     lcd.drawFilledRectangle(x, y, w, h)
 
-    -- draw label centered at the top (like toolbox.lua’s title block)
-    lcd.font(opts.fontlabel)
-    local lw, lh = lcd.getTextSize(label or "")
-    local lx = x + (w - lw) / 2
-    -- small top inset similar to toolbox (title y ~= bestH/4)
-    local ly = y + (lh / 4)
-    lcd.color(opts.colorlabel)
-    lcd.drawText(lx, ly, label or "")
+    local TEXT_COLOR = (lcd.darkMode() and lcd.RGB(255,255,255)) or lcd.RGB(77,73,77)
 
-    -- compute offset so value sits a bit below the title line (toolbox style)
-    local offsetY = lh - 3
+    local offsetY = 0
 
-    -- draw centered value (unit drawn separately to avoid alignment issues)
+    -----------------------------------------------------------------------
+    -- Title (auto-sized like toolbox/utils)
+    -----------------------------------------------------------------------
+    if label and label ~= "" then
+        local fontsTitle = radio.fontTitle or {FONT_XXS, FONT_XS}
+        local maxWTitle, maxHTitle = w * 0.9, h
+        local chosenTitle = chooseFontForPair(label, "", 0, maxWTitle, maxHTitle, fontsTitle, false)
+        local lw, lh = chosenTitle.vw, chosenTitle.vh
+
+        local lx = x + (w - lw) / 2
+        local ly = y + (lh / 4)  -- same visual inset as toolbox/utils
+        lcd.color(opts.colorlabel)
+        lcd.drawText(lx, ly, label)
+
+        offsetY = lh - 3 -- push value down a touch
+    end
+
+    -----------------------------------------------------------------------
+    -- Value + Unit as a combined block (auto-sized)
+    -----------------------------------------------------------------------
     local valueStr = tostring(value)
-    local unitStr  = unit and tostring(unit) or nil
+    local unitStr  = unit and tostring(unit) or ""
+    local gap      = 4
+    local fontsValue = radio.fontValue or {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L}
 
-    lcd.font(opts.fontvalue)
+    -- fit inside 90% width and remaining height beneath title
+    local maxVW, maxVH = w * 0.9, h - offsetY
+    local chosen = chooseFontForPair(valueStr, unitStr, gap, maxVW, maxVH, fontsValue, opts.widthAsciiFallback)
 
-    -- width for centering is based ONLY on the numeric value
-    local measureValue = opts.widthAsciiFallback and ascii_skeleton(valueStr) or valueStr
-    local vw, vh = lcd.getTextSize(measureValue)
+    -- center the combined block
+    local startX = x + (w - chosen.cw) / 2
+    local topY   = y + offsetY + ((h - offsetY) - chosen.ch) / 2
 
-    local vx = x + (w - vw) / 2
-    -- center vertically within the box, then push down by the title offset
-    local vy = y + (h - vh) / 2 + offsetY
-
-    lcd.color(opts.colorvalue)
-    lcd.drawText(vx,  vy, valueStr)
-
-    -- draw unit to the right, so it never affects centering
-    if unitStr and unitStr ~= "" then
-        local gap = 4 -- small fixed space between number and unit
-        lcd.drawText(vx + vw + gap, vy, unitStr)
+    lcd.color(TEXT_COLOR)
+    -- draw value
+    lcd.drawText(startX, topY, valueStr)
+    -- draw unit (if any), aligned to same top (baseline)
+    if unitStr ~= "" then
+        local unitX = startX + chosen.vw + gap
+        lcd.drawText(unitX, topY, unitStr)
     end
 end
 

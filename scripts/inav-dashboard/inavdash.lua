@@ -3,7 +3,7 @@
 
 -- external library placeholders (load them as a one off in create)
 inavdash.sensors = {}
-inavdash.radios =  {}
+inavdash.layout =  {}
 inavdash.render =  {}
 
 
@@ -86,7 +86,7 @@ end
 -- Replace the old per-resolution logic with a single compute
 local function getScreenSizes()
   local sw, sh = lcd.getWindowSize()
-  inavdash.radios = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
+  inavdash.layout = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
 end
 
 function inavdash.create()
@@ -137,7 +137,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.altitude.x, inavdash.radios.altitude.y, inavdash.radios.altitude.w, inavdash.radios.altitude.h, "Altitude", sensors['altitude'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'], "", opts)
 
         -- Ground Speed
         local opts = {
@@ -147,7 +147,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.groundspeed.x, inavdash.radios.groundspeed.y, inavdash.radios.groundspeed.w, inavdash.radios.groundspeed.h, "Speed", sensors['groundspeed'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'], "", opts)
 
         -- Distance
         local opts = {
@@ -157,7 +157,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.heading.x, inavdash.radios.heading.y, inavdash.radios.heading.w, inavdash.radios.heading.h, "Heading", sensors['heading'], "°", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'], "°", opts)
 
         -- Voltage
         local opts = {
@@ -167,7 +167,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.voltage.x, inavdash.radios.voltage.y, inavdash.radios.voltage.w, inavdash.radios.voltage.h, "Voltage", sensors['voltage'], "V", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'], "V", opts)
 
         -- Fuel
         local opts = {
@@ -177,7 +177,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.fuel.x, inavdash.radios.fuel.y, inavdash.radios.fuel.w, inavdash.radios.fuel.h, "Fuel", sensors['fuel'], "%", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'], "%", opts)
 
 
         -- Current
@@ -188,7 +188,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.current.x, inavdash.radios.current.y, inavdash.radios.current.w, inavdash.radios.current.h, "Current", sensors['current'], "A", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'], "A", opts)
 
         -- Current
         local opts = {
@@ -198,7 +198,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.radios.rssi.x, inavdash.radios.rssi.y, inavdash.radios.rssi.w, inavdash.radios.rssi.h, "RSSI", sensors['rssi'], "%", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'], "%", opts)
 
 
     end
@@ -212,7 +212,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.satellites.paint(inavdash.radios.satellites.x, inavdash.radios.satellites.y, inavdash.radios.satellites.w, inavdash.radios.satellites.h, "Satellites",sensors['satellites'], "", opts)
+        inavdash.render.satellites.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'], "", opts)
     end
 
 
@@ -225,7 +225,7 @@ function inavdash.paint()
             fontvalue = FONT_S,
             fontlabel = FONT_XS,
         }
-        inavdash.render.gps.paint(inavdash.radios.gps.x, inavdash.radios.gps.y, inavdash.radios.gps.w, inavdash.radios.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
+        inavdash.render.gps.paint(inavdash.layout.gps.x, inavdash.layout.gps.y, inavdash.layout.gps.w, inavdash.layout.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
     end
 
     -- GPS Lock
@@ -238,7 +238,7 @@ function inavdash.paint()
             },
             colorbg = lcd.RGB(40,40,40),
         }
-        inavdash.render.gps_lock.paint(inavdash.radios.gps_lock.x, inavdash.radios.gps_lock.y, inavdash.radios.gps_lock.w, inavdash.radios.gps_lock.h, sensors['gps_lock'], opts)
+        inavdash.render.gps_lock.paint(inavdash.layout.gps_lock.x, inavdash.layout.gps_lock.y, inavdash.layout.gps_lock.w, inavdash.layout.gps_lock.h, sensors['gps_lock'], opts)
     end
 
 end
@@ -341,7 +341,7 @@ function inavdash.wakeup()
             show_altitude = false,
             show_groundspeed = false,
         }
-        inavdash.render.ah.wakeup(sensors, inavdash.radios.ah.x, inavdash.radios.ah.y, inavdash.radios.ah.w, inavdash.radios.ah.h, ahconfig)
+        inavdash.render.ah.wakeup(sensors, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
     end
 
     if inavdash.render.map then
@@ -375,7 +375,7 @@ function inavdash.wakeup()
         home_lon    = sensors['home_longitude'],  -- if available
     }
 
-    local box = inavdash.radios.map
+    local box = inavdash.layout.map
     inavdash.render.map.wakeup(s, box.x, box.y, box.w, box.h, opts)
     end
 
