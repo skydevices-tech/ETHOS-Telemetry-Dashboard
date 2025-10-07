@@ -100,6 +100,11 @@ local function resetHomeAsk()
             st._locked = false
             st._samples = {}
             st._si = 1
+
+            for k, _ in pairs(sensors) do
+                sensors[k] = nil
+            end
+
             sensors['gps_lock'] = "red"
             lcd.invalidate()
             return true
@@ -321,22 +326,11 @@ function inavdash.wakeup()
 
         -- Parameters (tune to taste)
         local MIN_SATS       = 6
-        local SATS_ORANGE    = math.max(0, MIN_SATS - 2)
         local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
-        local WINDOW_SAMPLES = 20      -- how many recent samples to check
-        local WANDER_METERS  = 5       -- max radius of wander to accept
+        local WINDOW_SAMPLES = 10      -- how many recent samples to check
+        local WANDER_METERS  = 10      -- max radius of wander to accept
 
-        
-        -- Pre-lock colouring based purely on satellite count
-        if not (st and st._locked) then
-            if sats < SATS_ORANGE then
-                sensors['gps_lock'] = "red"
-            elseif sats < MIN_SATS then
-                sensors['gps_lock'] = "orange"
-            end
-        end
-
-        -- Only try to lock when GPS looks valid and we have a position
+        -- only try to lock when GPS looks valid and we have a position
         if sats >= MIN_SATS and lat and lon then
             -- ring buffer of recent GPS points (lat/lon)
             st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
@@ -364,10 +358,10 @@ function inavdash.wakeup()
                         if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
                     end
 
-                    -- Clear, non-overlapping thresholds (when sats >= MIN_SATS):
-                    --  > WANDER_METERS                    => RED (no lock)
+                     -- Clear, non-overlapping thresholds:
+                    --  > WANDER_METERS           => RED (no lock)
                     --  <= WANDER_METERS and > WANDER_METERS/2 => ORANGE (steady, tightening)
-                    --  <= WANDER_METERS/2                 => GREEN (lock + beep)
+                    --  <= WANDER_METERS/2        => GREEN (lock + beep)
                     if (not ok) or (maxR > WANDER_METERS) then
                         sensors['gps_lock'] = "red"
                     elseif ok and maxR > (WANDER_METERS / 2) then
