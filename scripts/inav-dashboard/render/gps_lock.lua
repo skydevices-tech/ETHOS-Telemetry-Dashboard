@@ -83,7 +83,10 @@ function render.paint(x, y, w, h, value, opts)
     if not bmp then return end
 
     -- draw full box image (stretched to fill / fit depending on firmware)
-    lcd.drawBitmap(x, y, bmp, w, h)
+    -- be tolerant of firmwares that don't accept w,h in drawBitmap
+    if not pcall(lcd.drawBitmap, x, y, bmp, w, h) then
+        lcd.drawBitmap(x, y, bmp)
+    end
 end
 
 return render
