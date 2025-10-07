@@ -31,7 +31,8 @@ local GRID_WIDGETS = {
   groundspeed   =  { col = 27, row = 3, colspan = 4,  rowspan = 2 },  
   heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 2 },
   satellites    =  { col = 27, row = 7, colspan = 4,  rowspan = 2 },
-  gps           =  { col = 17,  row = 7, colspan = 10,  rowspan = 2 },
+  gps           =  { col = 17,  row = 7, colspan = 6,  rowspan = 2 },
+  gps_lock      =  { col = 23,  row = 7, colspan = 4,  rowspan = 2 },
   voltage       =  { col = 1,  row = 7, colspan = 4,  rowspan = 3 },
   current       =  { col = 5,  row = 7, colspan = 4,  rowspan = 3 },  
   fuel          =  { col = 9,  row = 7, colspan = 4,  rowspan = 3 },
@@ -91,13 +92,14 @@ end
 function inavdash.create()
 
     -- Telemetry
-    if not inavdash.sensors and not inavdash.sensors.telemetry then inavdash.sensors.telemetry = assert(loadfile("sensors/telemetry.lua"))()  end
+    if not inavdash.sensors.telemetry then inavdash.sensors.telemetry = assert(loadfile("sensors/telemetry.lua"))()  end
 
     -- Render modules
     if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("render/telemetry.lua"))() end
     if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("render/ah.lua"))() end
     if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("render/satellites.lua"))() end
     if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("render/gps.lua"))() end
+    if not inavdash.render.gps_lock then inavdash.render.gps_lock = assert(loadfile("render/gps_lock.lua"))() end
     if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
 
 end
@@ -226,7 +228,18 @@ function inavdash.paint()
         inavdash.render.gps.paint(inavdash.radios.gps.x, inavdash.radios.gps.y, inavdash.radios.gps.w, inavdash.radios.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
     end
 
-
+    -- GPS Lock
+    if inavdash.render.gps_lock then
+        local opts = {
+            images = {
+                red = "gfx/red.png",
+                orange = "gfx/orange.png",
+                green = "gfx/green.png",
+            },
+            colorbg = lcd.RGB(40,40,40),
+        }
+        inavdash.render.gps_lock.paint(inavdash.radios.gps_lock.x, inavdash.radios.gps_lock.y, inavdash.radios.gps_lock.w, inavdash.radios.gps_lock.h, sensors['gps_lock'], opts)
+    end
 
 end
 
@@ -251,6 +264,7 @@ function inavdash.wakeup()
         sensors['satellites'] = inavdash.sensors.telemetry.getSensor('satellites')
         sensors['gps_latitude'] = inavdash.sensors.telemetry.getSensor('gps_latitude')
         sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
+        sensors['gps_lock'] = "red" -- we update this from the gps lock code in wakeup
 
     end
 
@@ -263,7 +277,7 @@ function inavdash.wakeup()
         local gs   = tonumber(sensors['groundspeed']) or 0
 
         -- Parameters (tune to taste)
-        local MIN_SATS       = 6
+        local MIN_SATS       = 5
         local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
         local WINDOW_SAMPLES = 20      -- how many recent samples to check
         local WANDER_METERS  = 5       -- max radius of wander to accept
@@ -296,11 +310,20 @@ function inavdash.wakeup()
                         if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
                     end
 
+                    -- No lock.. make sure icon is red
+                    if not ok or maxR > WANDER_METERS then
+                        sensors['gps_lock'] = "red"
+                    end
+                    -- Approaching if all samples are steady, but still outside the wander radius
+                    if ok and maxR <= WANDER_METERS/2 then
+                        sensors['gps_lock'] = "orange"
+                    end
+                    -- Locked if all samples are steady and within the wander radius
                     if ok and maxR <= WANDER_METERS then
                         st.home_lat, st.home_lon = cLat, cLon
                         st._locked = true
-
                         if system and system.playTone then system.playTone(1000, 500, 0) end
+                        sensors['gps_lock'] = "green"
                     end
                 end
             end
