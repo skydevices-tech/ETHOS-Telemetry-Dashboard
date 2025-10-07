@@ -7,6 +7,19 @@ local RenderMap = {
   _light_until = nil,   -- optional light mode timestamp (ms)
 }
 
+local function meters_per_deg(lat_deg)
+  local lat = math.rad(lat_deg or 0)
+  return 111320.0, 111320.0 * math.cos(lat)
+end
+
+local function enu_dxdy(lat, lon, lat0, lon0)
+  if not lat or not lon or not lat0 or not lon0 then return 1e9, 1e9 end
+  local mlat, mlon = meters_per_deg(lat0)
+  return (lon - lon0) * mlon, (lat - lat0) * mlat
+end
+
+local function hypot(x, y) return math.sqrt((x or 0)^2 + (y or 0)^2) end
+
 -- ===== helpers (wakeup only) =====
 local function sval(s, k, d)
   if type(s) ~= "table" then return d end
@@ -246,5 +259,19 @@ function RenderMap.paint()
   local W,H = lcd.getWindowSize()
   lcd.setClipping(0,0,W,H)
 end
+
+-- State detection for home position
+RenderMap.state = RenderMap.state or {
+  home_lat = nil,
+  home_lon = nil,
+  _samples = {},
+  _si = 1,
+  _locked = false,
+}
+
+
+RenderMap.hypot = hypot
+RenderMap.enu_dxdy = enu_dxdy
+RenderMap.meters_per_deg = meters_per_deg
 
 return RenderMap

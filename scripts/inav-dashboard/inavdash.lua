@@ -2,9 +2,9 @@
 -- (No local table here—keep a single shared namespace)
 
 -- external library placeholders (load them as a one off in create)
-inavdash.telemetry = nil
-inavdash.radios = {}
-inavdash.render = {}
+inavdash.sensors = {}
+inavdash.radios =  {}
+inavdash.render =  {}
 
 
 local sensors = {}
@@ -12,11 +12,9 @@ local internalModule = nil
 local externalModule = nil
 
 
-
--- === One grid layout for all resolutions ===
--- Think only in grid units; it auto-resolves to pixels at runtime.
-
 -- Define your grid once
+-- This is a simply html-style grid system
+-- You can adjust the number of columns/rows/padding to taste
 local GRID = {
   cols   = 30,   -- change to taste
   rows   = 8,
@@ -40,28 +38,6 @@ local GRID_WIDGETS = {
   rssi          =  { col = 13, row = 7, colspan = 4,  rowspan = 3 },
 }
 
--- State detection for home position
-inavdash.state = inavdash.state or {
-  home_lat = nil,
-  home_lon = nil,
-  _samples = {},
-  _si = 1,
-  _locked = false,
-}
-
-
-local function meters_per_deg(lat_deg)
-  local lat = math.rad(lat_deg or 0)
-  return 111320.0, 111320.0 * math.cos(lat)
-end
-
-local function enu_dxdy(lat, lon, lat0, lon0)
-  if not lat or not lon or not lat0 or not lon0 then return 1e9, 1e9 end
-  local mlat, mlon = meters_per_deg(lat0)
-  return (lon - lon0) * mlon, (lat - lat0) * mlat
-end
-
-local function hypot(x, y) return math.sqrt((x or 0)^2 + (y or 0)^2) end
 
 -- Convert one grid definition to pixel rects (inspired by dashboard.lua)
 local function computeGridRects(sw, sh, grid, widgets)
@@ -114,13 +90,15 @@ end
 
 function inavdash.create()
 
-    -- load externals
-    if not inavdash.telemetry then  inavdash.telemetry = assert(loadfile("lib/telemetry.lua"))()  end
-    if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("lib/render_telemetry.lua"))() end
-    if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("lib/render_ah.lua"))() end
-    if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("lib/render_satellites.lua"))() end
-    if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("lib/render_gps.lua"))() end
-    if not inavdash.render.map then inavdash.render.map = assert(loadfile("lib/render_map.lua"))() end
+    -- Telemetry
+    if not inavdash.sensors and not inavdash.sensors.telemetry then inavdash.sensors.telemetry = assert(loadfile("sensors/telemetry.lua"))()  end
+
+    -- Render modules
+    if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("render/telemetry.lua"))() end
+    if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("render/ah.lua"))() end
+    if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("render/satellites.lua"))() end
+    if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("render/gps.lua"))() end
+    if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
 
 end
 
@@ -257,80 +235,79 @@ function inavdash.wakeup()
     -- Get screen sizes and layout if not done yet
     getScreenSizes()
 
-    -- Get telemetry type
-    if inavdash.telemetry then
-        inavdash.telemetry.wakeup()
+    -- Check sensors
+    if inavdash.sensors and inavdash.sensors.telemetry then
+        inavdash.sensors.telemetry.wakeup()
+
+        sensors['voltage'] = inavdash.sensors.telemetry.getSensor('voltage')
+        sensors['current'] = inavdash.sensors.telemetry.getSensor('current')
+        sensors['altitude'] = inavdash.sensors.telemetry.getSensor('altitude')
+        sensors['fuel'] = inavdash.sensors.telemetry.getSensor('fuel')
+        sensors['rssi'] = inavdash.sensors.telemetry.getSensor('rssi')
+        sensors['roll'] = inavdash.sensors.telemetry.getSensor('roll')
+        sensors['pitch'] = inavdash.sensors.telemetry.getSensor('pitch')
+        sensors['heading'] = inavdash.sensors.telemetry.getSensor('heading')
+        sensors['groundspeed'] = inavdash.sensors.telemetry.getSensor('groundspeed')
+        sensors['satellites'] = inavdash.sensors.telemetry.getSensor('satellites')
+        sensors['gps_latitude'] = inavdash.sensors.telemetry.getSensor('gps_latitude')
+        sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
+
     end
-
-    -- Load all sensors.
-    sensors['voltage'] = inavdash.telemetry.getSensor('voltage')
-    sensors['current'] = inavdash.telemetry.getSensor('current')
-    sensors['altitude'] = inavdash.telemetry.getSensor('altitude')
-    sensors['fuel'] = inavdash.telemetry.getSensor('fuel')
-    sensors['rssi'] = inavdash.telemetry.getSensor('rssi')
-    sensors['roll'] = inavdash.telemetry.getSensor('roll')
-    sensors['pitch'] = inavdash.telemetry.getSensor('pitch')
-    sensors['heading'] = inavdash.telemetry.getSensor('heading')
-    sensors['groundspeed'] = inavdash.telemetry.getSensor('groundspeed')
-    sensors['satellites'] = inavdash.telemetry.getSensor('satellites')
-    sensors['gps_latitude'] = inavdash.telemetry.getSensor('gps_latitude')
-    sensors['gps_longitude'] = inavdash.telemetry.getSensor('gps_longitude')
-
 
     -- === Home locker (no FC home required) ===
     do
-    local st   = inavdash.state
-    local sats = tonumber(sensors['satellites']) or 0
-    local lat  = tonumber(sensors['gps_latitude'])
-    local lon  = tonumber(sensors['gps_longitude'])
-    local gs   = tonumber(sensors['groundspeed']) or 0
+        local st   = inavdash.render.map.state
+        local sats = tonumber(sensors['satellites']) or 0
+        local lat  = tonumber(sensors['gps_latitude'])
+        local lon  = tonumber(sensors['gps_longitude'])
+        local gs   = tonumber(sensors['groundspeed']) or 0
 
-    -- Parameters (tune to taste)
-    local MIN_SATS       = 6
-    local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
-    local WINDOW_SAMPLES = 20      -- how many recent samples to check
-    local WANDER_METERS  = 5       -- max radius of wander to accept
+        -- Parameters (tune to taste)
+        local MIN_SATS       = 6
+        local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
+        local WINDOW_SAMPLES = 20      -- how many recent samples to check
+        local WANDER_METERS  = 5       -- max radius of wander to accept
 
-    -- only try to lock when GPS looks valid and we have a position
-    if sats >= MIN_SATS and lat and lon then
-        -- ring buffer of recent GPS points (lat/lon)
-        st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
-        st._si = (st._si % WINDOW_SAMPLES) + 1
+        -- only try to lock when GPS looks valid and we have a position
+        if sats >= MIN_SATS and lat and lon then
+            -- ring buffer of recent GPS points (lat/lon)
+            st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
+            st._si = (st._si % WINDOW_SAMPLES) + 1
 
-        if not st._locked then
-        -- need the window to be full
-        if #st._samples >= WINDOW_SAMPLES then
-            -- compute "center" (simple average) and max radius
-            local sumLat, sumLon, maxR = 0, 0, 0
-            for i=1,WINDOW_SAMPLES do
-            sumLat = sumLat + (st._samples[i].lat or lat)
-            sumLon = sumLon + (st._samples[i].lon or lon)
+            if not st._locked then
+                -- need the window to be full
+                if #st._samples >= WINDOW_SAMPLES then
+                    -- compute "center" (simple average) and max radius
+                    local sumLat, sumLon, maxR = 0, 0, 0
+                    for i = 1, WINDOW_SAMPLES do
+                        sumLat = sumLat + (st._samples[i].lat or lat)
+                        sumLon = sumLon + (st._samples[i].lon or lon)
+                    end
+                    local cLat = sumLat / WINDOW_SAMPLES
+                    local cLon = sumLon / WINDOW_SAMPLES
+
+                    -- check wander & speed
+                    local ok = true
+                    for i = 1, WINDOW_SAMPLES do
+                        local s = st._samples[i]
+                        local dx, dy = inavdash.render.map.enu_dxdy(s.lat, s.lon, cLat, cLon)
+                        local r = inavdash.render.map.hypot(dx, dy)
+                        if r > maxR then maxR = r end
+                        if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
+                    end
+
+                    if ok and maxR <= WANDER_METERS then
+                        st.home_lat, st.home_lon = cLat, cLon
+                        st._locked = true
+
+                        if system and system.playTone then system.playTone(1000, 500, 0) end
+                    end
+                end
             end
-            local cLat = sumLat / WINDOW_SAMPLES
-            local cLon = sumLon / WINDOW_SAMPLES
-
-            -- check wander & speed
-            local ok = true
-            for i=1,WINDOW_SAMPLES do
-            local s = st._samples[i]
-            local dx, dy = enu_dxdy(s.lat, s.lon, cLat, cLon)
-            local r = hypot(dx, dy)
-            if r > maxR then maxR = r end
-            if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
-            end
-
-            if ok and maxR <= WANDER_METERS then
-            st.home_lat, st.home_lon = cLat, cLon
-            st._locked = true
-            
-            if system and system.playTone then system.playTone(1000, 500, 0) end 
         end
-        end
-        end
-    end
 
-    -- Optional: simple manual clear (e.g., if you add a menu later)
-    -- if some_condition then st.home_lat, st.home_lon, st._locked, st._samples, st._si = nil, nil, false, {}, 1 end
+        -- Optional: simple manual clear (e.g., if you add a menu later)
+        -- if some_condition then st.home_lat, st.home_lon, st._locked, st._samples, st._si = nil, nil, false, {}, 1 end
     end
 
 
