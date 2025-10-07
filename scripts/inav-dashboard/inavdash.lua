@@ -94,13 +94,6 @@ local function resetHomeAsk()
     local buttons = {{
         label = "OK",
         action = function()
-            tasks.events.flightmode.reset()
-            lcd.invalidate()
-            return true
-        end
-    }, {
-        label = "CANCEL",
-        action = function()
             local st = inavdash.render.map.state
             st.home_lat = nil
             st.home_lon = nil
@@ -109,6 +102,11 @@ local function resetHomeAsk()
             st._si = 1
             sensors['gps_lock'] = "red"
             lcd.invalidate()
+            return true
+        end
+    }, {
+        label = "CANCEL",
+        action = function()
             return true
         end
     }}
@@ -195,7 +193,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'], "°", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'], "", opts)
 
         -- Voltage
         local opts = {
@@ -302,7 +300,7 @@ function inavdash.wakeup()
         sensors['satellites'] = inavdash.sensors.telemetry.getSensor('satellites')
         sensors['gps_latitude'] = inavdash.sensors.telemetry.getSensor('gps_latitude')
         sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
-        sensors['gps_lock'] = "red" -- we update this from the gps lock code in wakeup
+        sensors['gps_lock'] = nil -- we update this from the gps lock code in wakeup
 
     end
 
@@ -314,13 +312,31 @@ function inavdash.wakeup()
         local lon  = tonumber(sensors['gps_longitude'])
         local gs   = tonumber(sensors['groundspeed']) or 0
 
+        -- Keep the indicator persistent once we've locked
+        if st and st._locked then
+            sensors['gps_lock'] = "green"
+        else
+            sensors['gps_lock'] = sensors['gps_lock'] or "red"
+        end
+
         -- Parameters (tune to taste)
         local MIN_SATS       = 6
+        local SATS_ORANGE    = math.max(0, MIN_SATS - 2)
         local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
         local WINDOW_SAMPLES = 20      -- how many recent samples to check
         local WANDER_METERS  = 5       -- max radius of wander to accept
 
-        -- only try to lock when GPS looks valid and we have a position
+        
+        -- Pre-lock colouring based purely on satellite count
+        if not (st and st._locked) then
+            if sats < SATS_ORANGE then
+                sensors['gps_lock'] = "red"
+            elseif sats < MIN_SATS then
+                sensors['gps_lock'] = "orange"
+            end
+        end
+
+        -- Only try to lock when GPS looks valid and we have a position
         if sats >= MIN_SATS and lat and lon then
             -- ring buffer of recent GPS points (lat/lon)
             st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
@@ -348,16 +364,15 @@ function inavdash.wakeup()
                         if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
                     end
 
-                    -- No lock.. make sure icon is red
-                    if not ok or maxR > WANDER_METERS then
+                    -- Clear, non-overlapping thresholds (when sats >= MIN_SATS):
+                    --  > WANDER_METERS                    => RED (no lock)
+                    --  <= WANDER_METERS and > WANDER_METERS/2 => ORANGE (steady, tightening)
+                    --  <= WANDER_METERS/2                 => GREEN (lock + beep)
+                    if (not ok) or (maxR > WANDER_METERS) then
                         sensors['gps_lock'] = "red"
-                    end
-                    -- Approaching if all samples are steady, but still outside the wander radius
-                    if ok and maxR <= WANDER_METERS/2 then
+                    elseif ok and maxR > (WANDER_METERS / 2) then
                         sensors['gps_lock'] = "orange"
-                    end
-                    -- Locked if all samples are steady and within the wander radius
-                    if ok and maxR <= WANDER_METERS then
+                    else -- ok and maxR <= WANDER_METERS/2
                         st.home_lat, st.home_lon = cLat, cLon
                         st._locked = true
                         if system and system.playTone then system.playTone(1000, 500, 0) end
@@ -396,10 +411,10 @@ function inavdash.wakeup()
         home  = lcd.RGB(255, 255, 255),
         text  = lcd.RGB(255, 255, 255),
     },
-    -- only provide home once locked:
-    home = (inavdash.state and inavdash.state._locked) and {
-        lat = inavdash.state.home_lat,
-        lon = inavdash.state.home_lon,
+    -- only provide home once locked (use the map state you maintain):
+    home = (inavdash.render.map.state and inavdash.render.map.state._locked) and {
+        lat = inavdash.render.map.state.home_lat,
+        lon = inavdash.render.map.state.home_lon,
     } or nil,
 
     -- optional: reduce draw load for ~2s when GPS first appears
