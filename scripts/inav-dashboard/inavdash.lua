@@ -89,6 +89,44 @@ local function getScreenSizes()
   inavdash.layout = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
 end
 
+local function resetHomeAsk()
+
+    local buttons = {{
+        label = "OK",
+        action = function()
+            tasks.events.flightmode.reset()
+            lcd.invalidate()
+            return true
+        end
+    }, {
+        label = "CANCEL",
+        action = function()
+            local st = inavdash.render.map.state
+            st.home_lat = nil
+            st.home_lon = nil
+            st._locked = false
+            st._samples = {}
+            st._si = 1
+            sensors['gps_lock'] = "red"
+            lcd.invalidate()
+            return true
+        end
+    }}
+
+    form.openDialog({
+        width = nil,
+        title =  "Reset Home Location",
+        message = "Are you sure you want to reset the home location?",
+        buttons = buttons,
+        wakeup = function()
+        end,
+        paint = function()
+        end,
+        options = TEXT_LEFT
+    })
+
+end   
+
 function inavdash.create()
 
     -- Telemetry
@@ -277,7 +315,7 @@ function inavdash.wakeup()
         local gs   = tonumber(sensors['groundspeed']) or 0
 
         -- Parameters (tune to taste)
-        local MIN_SATS       = 5
+        local MIN_SATS       = 6
         local MAX_SPEED_MPS  = 0.8     -- consider "steady" below this
         local WINDOW_SAMPLES = 20      -- how many recent samples to check
         local WANDER_METERS  = 5       -- max radius of wander to accept
@@ -403,7 +441,9 @@ function inavdash.event()
 end
 
 function inavdash.menu()
-    -- body
+    return {
+        {"Reset home location", resetHomeAsk},
+    }
 end
 
 return inavdash
