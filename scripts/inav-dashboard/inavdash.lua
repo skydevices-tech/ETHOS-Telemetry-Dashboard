@@ -348,6 +348,8 @@ function inavdash.wakeup()
     local opts = {
     north_up = false,
     show_grid = true,
+    home_icon = "gfx/home.png",
+    show_speed_vec = false,
     colors = {
         bg    = lcd.RGB(0, 60, 0),
         grid  = lcd.RGB(0, 90, 0),

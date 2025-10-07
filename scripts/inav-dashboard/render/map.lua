@@ -223,11 +223,21 @@ function RenderMap.paint()
 
   -- home icon (Ethos-safe: triangles + rectangles only)
   do
-    lcd.color(F.colors.home)
     local hx, hy = F.home_xy.x, F.home_xy.y
-    local s = 6  -- base size
-    dtri(hx - s, hy - s,  hx, hy - 2*s,  hx + s, hy - s, true)  -- roof
-    dfrect(hx - 0.7*s, hy - s, 1.4*s, 1.7*s)                    -- body
+    if opts and opts.home_icon then
+      -- expects opts.home_icon = "path/to/home.bmp" or a preloaded bitmap handle
+      if type(opts.home_icon) == "string" then
+        lcd.drawBitmap(hx - 8, hy - 8, lcd.loadBitmap(opts.home_icon))
+      else
+        lcd.drawBitmap(hx - 8, hy - 8, opts.home_icon)
+      end
+    else
+      -- fallback to simple shape
+      lcd.color(F.colors.home)
+      local s = 6
+      dtri(hx - s, hy - s, hx, hy - 2*s, hx + s, hy - s, true)
+      dfrect(hx - 0.7*s, hy - s, 1.4*s, 1.7*s)
+    end
   end
 
   -- ownship
