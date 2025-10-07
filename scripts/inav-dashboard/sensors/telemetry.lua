@@ -177,6 +177,16 @@ local sensorTable = {
             },
             crsf = { "Roll" },
         },
+        transform = function(value)
+            if currentTelemetryType == "sport" then
+                if value then
+                    return -value
+                end
+                return value
+            else
+                return value
+            end
+        end
     },
 
     pitch = {
@@ -188,6 +198,16 @@ local sensorTable = {
             },
             crsf = { "Pitch" },
         },
+        transform = function(value)
+            if currentTelemetryType == "sport" then
+                if value then
+                    return -value
+                end
+                return value
+            else
+                return value
+            end
+        end        
     },    
 
     groundspeed = {
@@ -288,11 +308,18 @@ end
 function telemetry.getSensor(sensorKey)
     local entry = sensorTable[sensorKey]
 
+    -- Virtual source (user-defined)
     if entry and type(entry.source) == "function" then
         local src = entry.source()
         if src and type(src.value) == "function" then
             local value, major, minor = src.value()
             major = major or entry.unit
+
+            -- ✅ Apply transform if defined
+            if type(entry.transform) == "function" then
+                value = entry.transform(value)
+            end
+
             return value, major, minor
         end
     end
@@ -308,8 +335,14 @@ function telemetry.getSensor(sensorKey)
     local major = entry and entry.unit or nil
     local minor = nil
 
+    -- ✅ Apply transform if defined
+    if entry and type(entry.transform) == "function" then
+        value = entry.transform(value)
+    end
+
     return value, major, minor
 end
+
 
 
 function telemetry.wakeup()
