@@ -22,6 +22,7 @@ local supportedRadios = {
   ["800x480"] = {
     fontTitle             = {FONT_XXS, FONT_XS},                            -- Font used for titles/labels
     fontValue             = {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L},    -- Font used for telemetry values
+    gpsFontValue          = {FONT_XXS, FONT_XS, FONT_S},                    -- Font used for GPS lat/lon values
     gpsLineGap            = 4,                                              -- gap between lat/lon lines
     unitGap               = 0,                                              -- gap between value and unit in telemetry
   },
@@ -32,6 +33,7 @@ local supportedRadios = {
   ["480x320"] = {
     fontTitle             = {FONT_XXS},                                     --
     fontValue             = {FONT_XXS, FONT_XS, FONT_S, FONT_M},            -- Font used for telemetry
+    gpsFontValue          = {FONT_XXS, FONT_XS, FONT_S},                    -- Font used for GPS lat/lon values    
     gpsLineGap            = -2,                                             -- gap between lat/lon lines
     unitGap               = 0                                               -- gap between value and unit in telemetry
   },
@@ -42,6 +44,7 @@ local supportedRadios = {
   ["640x360"] = {
     fontTitle             = {FONT_XXS, FONT_XS},                            -- Font used for titles/labels
     fontValue             = {FONT_XXS, FONT_XS, FONT_S, FONT_M},            -- Font used for telemetry values
+    gpsFontValue          = {FONT_XXS, FONT_XS, FONT_S},                    -- Font used for GPS lat/lon values
     gpsLineGap            = 3,                                              -- gap between lat/lon lines
     unitGap               = 0                                               -- gap between value and unit in telemetry
   },

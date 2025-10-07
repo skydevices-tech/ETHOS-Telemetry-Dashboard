@@ -33,6 +33,7 @@ local function chooseFontForPair(valueStr, unitStr, gap, maxW, maxH, fonts, useA
     return best
 end
 
+
 function render.paint(x, y, w, h, label, value, unit, opts)
     -- fallbacks
     if value == nil then value = "-" end
@@ -41,6 +42,24 @@ function render.paint(x, y, w, h, label, value, unit, opts)
     if not opts.colorvalue then opts.colorvalue = lcd.RGB(255, 255, 255) end
     if not opts.colorlabel then opts.colorlabel = (lcd.darkMode() and lcd.RGB(154,154,154)) or lcd.RGB(77,73,77) end
     if opts.widthAsciiFallback == nil then opts.widthAsciiFallback = false end
+
+    ----------------------------------------------------------------
+    -- If the value looks like an INAV composite (status + sats),
+    -- extract only the numeric satellite count.
+    ----------------------------------------------------------------
+    do
+        if type(value) == "string" then
+            local s = value:gsub("^%s+", ""):gsub("%s+$", "")
+            if s ~= "" then
+                -- If it's something like "2:12" or "1 07", grab the last number
+                local sats_str = s:match("(%d+)$")
+                if sats_str then
+                    value = tonumber(sats_str) or value
+                end
+            end
+        end
+    end
+    ----------------------------------------------------------------
 
     -- background
     lcd.color(opts.colorbg)

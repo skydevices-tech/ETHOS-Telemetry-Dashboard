@@ -94,7 +94,7 @@ function render.paint(x, y, w, h, label, latitude, longitude, opts)
     local lonStr = toDMS(longitude, false)
 
     local gap = radio.gpsLineGap or 4
-    local fontsValue = radio.fontValue or {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L}
+    local fontsValue = radio.gpsFontValue or {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L}
     local maxWVal, maxHVal = w * 0.92, (h - offsetY)
     local chosen = chooseFontTwoLines(latStr, lonStr, gap, maxWVal, maxHVal, fontsValue, opts.widthAsciiFallback)
 
