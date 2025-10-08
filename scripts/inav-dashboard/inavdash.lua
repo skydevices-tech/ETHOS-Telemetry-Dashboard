@@ -138,7 +138,6 @@ function inavdash.create()
     -- Render modules
     if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("render/telemetry.lua"))() end
     if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("render/ah.lua"))() end
-    if not inavdash.render.satellites then inavdash.render.satellites = assert(loadfile("render/satellites.lua"))() end
     if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("render/gps.lua"))() end
     if not inavdash.render.gps_lock then inavdash.render.gps_lock = assert(loadfile("render/gps_lock.lua"))() end
     if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
@@ -241,11 +240,7 @@ function inavdash.paint()
         }
         inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'], "%", opts)
 
-
-    end
-
-    -- Satellites
-    if inavdash.render.satellites then
+        -- Satellites
         local opts = {
             colorbg = lcd.RGB(40,40,40),
             colorvalue = lcd.RGB(255,255,255),
@@ -253,7 +248,9 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.satellites.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'], "", opts)
+
+
     end
 
 

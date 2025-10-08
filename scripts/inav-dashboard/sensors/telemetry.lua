@@ -227,6 +227,22 @@ local sensorTable = {
                     },
             crsf = { "GPS Satellites" },
         },
+        transform = function(value)
+            if currentTelemetryType == "sport" then
+                if value then
+                    if string.len(value) > 1 then
+                        if string.len(value) < 2 then
+                            value = tonumber(widget.value)
+                        else
+                            value = tonumber(string.sub(value, 3))
+                        end
+                    end                   
+                end
+                return value
+            else
+                return value
+            end
+        end          
     },    
     
     gps_latitude = {
@@ -252,7 +268,6 @@ local sensorTable = {
                     },
         },
     },  
-
 
 }
 
