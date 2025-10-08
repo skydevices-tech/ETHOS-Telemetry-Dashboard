@@ -79,6 +79,16 @@ local sensorTable = {
             sport = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0600 }, },
             crsf = { "Rx Batt%" },
         },
+        transform = function(value)
+            if currentTelemetryType == "sport" then
+                if value then
+                    return 100 - value
+                end
+                return value
+            else
+                return value
+            end
+        end        
     },
 
     -- Current Sensors
