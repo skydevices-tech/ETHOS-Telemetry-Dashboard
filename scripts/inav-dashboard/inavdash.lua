@@ -285,6 +285,13 @@ function inavdash.wakeup()
         sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
         sensors['flightmode'] = inavdash.sensors.telemetry.getSensor('flightmode')
 
+
+        if sensors['gps_lock'] == false then
+            sensors['groundspeed'] =  0
+            sensors['heading'] = 0
+            sensors['altitude'] = 0
+        end
+
         -- GPS Lock logic
         do
             -- Detect GPS lock transition
