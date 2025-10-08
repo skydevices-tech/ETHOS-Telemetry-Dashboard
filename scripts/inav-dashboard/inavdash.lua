@@ -413,6 +413,21 @@ function inavdash.wakeup()
     inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
     end
 
+
+    -- Flight Mode change detection with audio playback
+    do
+        local fm = sensors['flightmode']
+        local prev = inavdash._prev_flightmode
+        -- Only trigger if we have a valid mode now, and either it's the first one
+        -- (prev == nil) or it has changed since last time.
+        if fm and (prev == nil or fm ~= prev) then
+            local file = string.format("audio/en/default/fm-%d.wav", fm)
+            system.playFile(file)
+            inavdash._prev_flightmode = fm
+        end
+    end
+
+
     -- Paint only if we are on screen
     if lcd.isVisible() then
         lcd.invalidate()
