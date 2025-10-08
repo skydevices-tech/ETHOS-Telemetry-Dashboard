@@ -408,7 +408,7 @@ function inavdash.wakeup()
         },
         colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
         show_ring = true,
-        show_text = false,
+        show_text = true,
     }
     inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
     end

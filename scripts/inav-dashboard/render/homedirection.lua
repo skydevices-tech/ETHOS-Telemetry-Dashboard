@@ -32,6 +32,13 @@ local function dcircle(x,y,r,fill)
   if fill and lcd.drawFilledCircle then lcd.drawFilledCircle(x,y,r) else lcd.drawCircle(x,y,r) end
 end
 
+local function fmt_dist_m(m)  -- meters -> "123m" / "1.2km"
+  m = tonumber(m)
+  if not m or m ~= m or m < 0 then return "--" end
+  if m >= 1000 then return string.format("%.1fkm", m / 1000.0) end
+  return string.format("%dm", math.floor(m + 0.5))
+end
+
 -- atan2 across Lua versions
 local function atan2(y, x)
   if math.atan2 then return math.atan2(y, x) end
@@ -81,6 +88,7 @@ function HD.wakeup(x, y, w, h, sensors, opts)
   local hlat = tonumber(sensors.home_lat)  or tonumber(sensors.home_latitude)  or 0
   local hlon = tonumber(sensors.home_lon)  or tonumber(sensors.home_longitude) or 0
   local hdg  = (tonumber(sensors.heading) or 0) % 360
+  local dist_sensor = tonumber(sensors.gps_distancehome or sensors.home_distance or sensors.distance_home or sensors.distancehome)
 
   -- choose colors + visuals
   local colors = opts.colors or {}
@@ -104,9 +112,10 @@ function HD.wakeup(x, y, w, h, sensors, opts)
   local status   = "NO GPS"
 
   if haveGPS and haveHome then
-    -- home vector in meters (East, North)
+    -- distance (prefer sensor if available)
     local e, n = enu_from_latlon(lat, lon, hlat, hlon)
-    dist_m = hypot(e, n)
+    local dist_m = hypot(e, n)
+    if dist_sensor and dist_sensor > 0 then dist_m = dist_sensor end
 
     -- bearing to home (deg from North, clockwise)
     local brg = (math.deg(atan2(e, n)) + 360) % 360
@@ -123,7 +132,8 @@ function HD.wakeup(x, y, w, h, sensors, opts)
     else
       selected = "back"
     end
-    status = string.format("%dm", math.floor(dist_m + 0.5))
+
+    status = fmt_dist_m(dist_m)
   elseif haveGPS and not haveHome then
     status = "NO HOME"
   end
@@ -149,6 +159,11 @@ function HD.paint()
 
   local x, y, w, h = F.box.x, F.box.y, F.box.w, F.box.h
   local cx, cy = x + w/2, y + h/2
+
+  -- lift the main content slightly to give space below
+  if F.text.show then
+    cy = cy - (h * 0.08)   -- adjust this fraction to taste (0.05–0.12 looks good)
+  end
 
   -- clip to widget box
   lcd.setClipping(i(x), i(y), i(w), i(h))
@@ -190,12 +205,13 @@ function HD.paint()
 
 
   -- optional text (distance or status)
-  if F.text.show then
+    if F.text.show then
     lcd.color(F.colors.text)
     lcd.font(FONT_XS)
-    local tw = lcd.getTextSize(F.text.str)
-    dtext(cx - tw/2, y + h - 14, F.text.str)
-  end
+    local tw, th = lcd.getTextSize(F.text.str)
+    -- lift the text upward by half its height for better visual balance
+    dtext(cx - tw / 2, y + h - 14 - (th / 2), F.text.str)
+    end
 
   -- reset clip
   local W,H = lcd.getWindowSize()
