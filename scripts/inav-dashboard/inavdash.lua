@@ -10,6 +10,7 @@ inavdash.render =  {}
 local sensors = {}
 local internalModule = nil
 local externalModule = nil
+local currentPage = currentPage or 1
 
 -- GPS Lock
 local gps_lock_prev = false
@@ -26,23 +27,45 @@ local GRID = {
 }
 
 -- Place widgets in grid terms (col/row are 1-based)
-local GRID_WIDGETS = {
-  -- Full-bleed AH across the whole grid:
-  ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
-  flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
-  map           =  { col = 13, row = 1, colspan = 14, rowspan = 8 },
-  altitude      =  { col = 23, row = 9, colspan = 4,  rowspan = 4 },
-  groundspeed   =  { col = 19, row = 9, colspan = 4,  rowspan = 4 },  
-  heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 4 },
-  satellites    =  { col = 27, row = 9, colspan = 4,  rowspan = 4 },
-  gps           =  { col = 19,  row = 13, colspan = 8,  rowspan = 4 },
-  gps_lock      =  { col = 27,  row = 13, colspan = 4,  rowspan = 4 },
-  voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
-  current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-  fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
-  rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
-  home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
+local GRID_WIDGETS = nil
+
+local GRID_PAGES = {
+    [1] = {
+        ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
+        flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
+        map           =  { col = 13, row = 1, colspan = 14, rowspan = 8 },
+        altitude      =  { col = 23, row = 9, colspan = 4,  rowspan = 4 },
+        groundspeed   =  { col = 19, row = 9, colspan = 4,  rowspan = 4 },  
+        heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 4 },
+        satellites    =  { col = 27, row = 9, colspan = 4,  rowspan = 4 },
+        gps           =  { col = 19,  row = 13, colspan = 8,  rowspan = 4 },
+        gps_lock      =  { col = 27,  row = 13, colspan = 4,  rowspan = 4 },
+        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
+        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
+        home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
+    },
+    [2] = {
+        ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
+        flightmode    =  nil,
+        map           =  { col = 17,  row = 1, colspan = 14, rowspan = 12 },
+        altitude      =  { col = 13,  row = 13, colspan = 4,  rowspan = 4 },
+        groundspeed   =  { col = 17,  row = 13, colspan = 4,  rowspan = 4 },
+        heading       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
+        satellites    =  nil,
+        gps           =  { col = 25,  row = 13, colspan = 6,  rowspan = 4 },
+        gps_lock      =  nil,
+        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 }, 
+        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        rssi          =  nil,
+        home_dir      =  nil
+    },
+    
+
 }
+
 
 
 -- Convert one grid definition to pixel rects (inspired by dashboard.lua)
@@ -125,118 +148,145 @@ function inavdash.paint()
     lcd.drawFilledRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT)
     
     -- Artificial Horizon
-    if inavdash.render.ah then
-        -- positions are pre-calculated in wakeup
+    if inavdash.layout.ah then
         inavdash.render.ah.paint()
     end
 
     -- Map
-    if inavdash.render.map then
+    if inavdash.layout.map then
          inavdash.render.map.paint()
     end            
 
     if inavdash.render.telemetry then
 
         -- Flight Mode
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.flightmode.paint(inavdash.layout.flightmode.x, inavdash.layout.flightmode.y, inavdash.layout.flightmode.w, inavdash.layout.flightmode.h, "Flight Mode", sensors['flightmode'] or 0, "", opts)
+        if inavdash.layout.flightmode then        
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
 
+            inavdash.render.flightmode.paint(inavdash.layout.flightmode.x, inavdash.layout.flightmode.y, inavdash.layout.flightmode.w, inavdash.layout.flightmode.h, "Flight Mode", sensors['flightmode'] or 0, "", opts)
+        end
 
         -- Altitude
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, "", opts)
+        if inavdash.layout.altitude then        
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+            inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, "", opts)
+        end
 
         -- Ground Speed
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, "", opts)
+         if inavdash.layout.groundspeed then       
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+        
+
+            inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, "", opts)
+        end
 
         -- Distance
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, "", opts)
+        if inavdash.layout.heading then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, "", opts)
+        end
 
         -- Voltage
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, "V", opts)
+        if inavdash.layout.voltage then 
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+
+            inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, "V", opts)
+        end
 
         -- Fuel
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, "%", opts)
+        if inavdash.layout.fuel then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
 
 
-        -- Current
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, "A", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, "%", opts)
+        end
 
         -- Current
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, "%", opts)
+        if inavdash.layout.current then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+
+            inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, "A", opts)
+        end
+
+        -- RSSI
+        if inavdash.layout.rssi then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+
+            inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, "%", opts)
+        end
 
         -- Satellites
-        local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
-            fontvalue = FONT_L,
-            fontlabel = FONT_XS,
-        }
-        inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
+        if inavdash.layout.satellites then
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+            inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
+        end
 
-
-        if inavdash.render.hd then inavdash.render.hd.paint() end
+        if inavdash.layout.home_dir then inavdash.render.hd.paint() end
 
     end
 
 
     -- GPS
-    if inavdash.render.gps then
+    if inavdash.layout.gps then
         local opts = {
             colorbg = lcd.RGB(40,40,40),
             colorvalue = lcd.RGB(255,255,255),
@@ -248,7 +298,7 @@ function inavdash.paint()
     end
 
     -- GPS Lock
-    if inavdash.render.gps_lock then
+    if inavdash.layout.gps_lock then
         local opts = {
             images = {
                 red = "gfx/red.png",
@@ -263,6 +313,12 @@ function inavdash.paint()
 end
 
 function inavdash.wakeup()
+
+    if GRID_WIDGETS == nil then
+        -- First time only: pick a page layout
+        GRID_WIDGETS = GRID_PAGES[currentPage] or GRID_PAGES[1]
+    end
+
 
     -- Get screen sizes and layout if not done yet
     getScreenSizes()
@@ -356,7 +412,9 @@ function inavdash.wakeup()
             show_altitude = false,
             show_groundspeed = false,
         }
-        inavdash.render.ah.wakeup(sensors, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
+        if inavdash.render.ah then
+            inavdash.render.ah.wakeup(sensors, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
+        end
     end
 
     if inavdash.render.map then
@@ -394,30 +452,34 @@ function inavdash.wakeup()
         }
 
         local box = inavdash.layout.map
-        inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s,opts)
+        if box then
+            inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s,opts)
+        end
     end
 
-    if inavdash.render.hd then
-    local box = inavdash.layout.home_dir
-    local s = {
-        latitude  = sensors['gps_latitude'],
-        longitude = sensors['gps_longitude'],
-        heading   = sensors['heading'],
-        home_lat  = sensors['home_latitude'],
-        home_lon  = sensors['home_longitude'],
-    }
-    local opts = {
-        images = {
-            forward = "gfx/hd_fwd.png",
-            left    = "gfx/hd_left.png",
-            right   = "gfx/hd_right.png",
-            back    = "gfx/hd_rev.png",
-        },
-        colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
-        show_ring = true,
-        show_text = true,
-    }
-    inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
+    if inavdash.layout.home_dir then
+        local box = inavdash.layout.home_dir
+        local s = {
+            latitude  = sensors['gps_latitude'],
+            longitude = sensors['gps_longitude'],
+            heading   = sensors['heading'],
+            home_lat  = sensors['home_latitude'],
+            home_lon  = sensors['home_longitude'],
+        }
+        local opts = {
+            images = {
+                forward = "gfx/hd_fwd.png",
+                left    = "gfx/hd_left.png",
+                right   = "gfx/hd_right.png",
+                back    = "gfx/hd_rev.png",
+            },
+            colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
+            show_ring = true,
+            show_text = true,
+        }
+        if box then
+            inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
+        end
     end
 
 
@@ -450,12 +512,33 @@ function inavdash.write()
     -- body
 end
 
-function inavdash.event()
-    -- body
+function inavdash.event(widget, category, value, x, y)
+    if lcd.hasFocus() then
+        print("Event received:", category, value, x, y)
+        local num_pages = #GRID_PAGES
+
+        if category == 0 and value == 4100 then -- scroll right
+            currentPage = currentPage + 1
+            if currentPage > num_pages then
+                currentPage = 1 -- wrap around to first page
+            end
+        elseif category == 0 and value == 4099 then -- scroll left
+            currentPage = currentPage - 1
+            if currentPage < 1 then
+                currentPage = num_pages -- wrap around to last page
+            end
+        end
+
+        -- Update the widgets to the current page
+        GRID_WIDGETS = GRID_PAGES[currentPage]
+
+        print("Current page:", currentPage)
+    end
 end
 
+
 function inavdash.menu()
-    --
+    return {}
 end
 
 return inavdash

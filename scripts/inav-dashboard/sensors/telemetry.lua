@@ -266,12 +266,12 @@ local sensorTable = {
         autoCreate = true,
         transform = function(value)
             if currentTelemetryType == "sport" then
-                if value then
+                if value and flightmodes then
                     return flightmodes.eval("sport", value)
                 end
                 return value
             else
-                if value then
+                if value and flightmodes then
                     return flightmodes.eval("crsf", value)
                 end
             end
