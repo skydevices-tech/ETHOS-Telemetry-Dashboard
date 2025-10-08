@@ -117,8 +117,8 @@ function HD.wakeup(x, y, w, h, sensors, opts)
     local dist_m = hypot(e, n)
     if dist_sensor and dist_sensor > 0 then dist_m = dist_sensor end
 
-    -- bearing to home (deg from North, clockwise)
-    local brg = (math.deg(atan2(e, n)) + 360) % 360
+    -- bearing to home (deg from North, from clockwise)
+    local brg = (math.deg(atan2(-e, -n)) + 360) % 360
 
     -- signed difference (-180..+180), + = turn right, - = turn left
     diff_deg = ((brg - hdg + 540) % 360) - 180
