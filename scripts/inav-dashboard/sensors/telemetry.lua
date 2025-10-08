@@ -108,8 +108,9 @@ local sensorTable = {
         name = "Altitude",
         sensors = {
             sport = { 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0820 } ,                
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0100 } 
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0820 },
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0100 },
+              
             
             },
             crsf  = { "GPS alt"},
@@ -144,7 +145,7 @@ local sensorTable = {
         name = "Roll",
         sensors = {
             sport = { 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0440 , subId = 0},                 
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0440 , subId = 0, physId = 0x1B},                 
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0730 , subId = 0}, 
             },
             crsf = { "Roll" },
@@ -153,7 +154,7 @@ local sensorTable = {
         transform = function(value)
             if currentTelemetryType == "sport" then
                 if value then
-                    return -value/10
+                    return -value
                 end
                 return value
             else
@@ -166,7 +167,7 @@ local sensorTable = {
         name = "Pitch",
         sensors = {
             sport = { 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0430, subId = 0 },                 
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0430, subId = 0, physId = 0x1B},                 
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0730, subId = 1 }, 
             },
             crsf = { "Pitch" },
@@ -175,7 +176,7 @@ local sensorTable = {
         transform = function(value)
             if currentTelemetryType == "sport" then
                 if value then
-                    return -value/10
+                    return -value
                 end
                 return value
             else
@@ -201,6 +202,7 @@ local sensorTable = {
                     },
             crsf = { "GPS Satellites" },
         },
+        autoCreate = true,
         transform = function(value)
             if currentTelemetryType == "sport" then
                 if value then
@@ -304,6 +306,14 @@ local autoCreate = {
         appId    = 0x0830,
         subId    = 0,
     },    
+    satellites = {
+        name     = "Satellites",
+        physId   = 0x1B,
+        unit     = UNIT_RAW,
+        decimals = 0,
+        appId    = 0x0480,
+        subId    = 0,
+    },
 }
 
 
@@ -339,31 +349,39 @@ end
 -- Create a SPORT sensor object via ETHOS API, then set its IDs (once).
 local function _createSportSensor(sensorDef, sensorKey)
     if currentTelemetryType ~= "sport" or not currentTelemetrySensor then return false end
-
-    -- rate limit: only after 5s from start, and no more than once every 5s
     if not _creationAllowed() then return false end
 
+    -- cosmetics from table; IDs from sensorDef we’re resolving right now
     local cfg = autoCreate[sensorKey]
     if not cfg then return false end
 
-    -- Only one try per specific def (protocol+appId+subId) per session.
+    -- One-shot per {protocol|appId|subId}
     local defKey = _defKey(sensorDef)
     if _createTried[defKey] then return false end
     _createTried[defKey] = true
 
+    -- If it suddenly exists now, bail (double-check before creating)
+    local already = system.getSource(sensorDef)
+    if already then return false end
 
-    -- Create the sensor and configure fields
-    local sensor = model.createSensor({ type = SENSOR_TYPE_DIY })
-    sensor:name(cfg.name)
-    sensor:unit(cfg.unit)
-    sensor:decimals(cfg.decimals)
-    sensor:physId(cfg.physId)
-    sensor:appId(cfg.appId)
-    sensor:subId(cfg.subId)
-    sensor:minimum(min or -1000000000)
-    sensor:maximum(max or 2147483647)
+    -- ✅ Create correct type
+    local s = model.createSensor({ type = SENSOR_TYPE_DIY })
+    s:name(cfg.name)
+    s:unit(cfg.unit)
+    s:decimals(cfg.decimals)
+    s:protocolDecimals(cfg.decimals)
+    s:physId(cfg.physId)
+    s:minimum(-1000000000); 
+    s:maximum(2147483647)    
 
-    -- success: update last-create timestamp to enforce the 5s gap
+
+    -- ✅ IDs come from the sensor we’re searching for
+    s:appId(sensorDef.appId)
+    s:subId(sensorDef.subId or 0)
+
+
+
+
     _lastCreateTime = os.clock()
     return true
 end
