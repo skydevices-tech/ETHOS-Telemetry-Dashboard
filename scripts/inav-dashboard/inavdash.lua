@@ -11,6 +11,9 @@ local sensors = {}
 local internalModule = nil
 local externalModule = nil
 
+-- GPS Lock
+local gps_lock_prev = false
+
 
 -- Define your grid once
 -- This is a simply html-style grid system
@@ -105,7 +108,7 @@ local function resetHomeAsk()
                 sensors[k] = nil
             end
 
-            sensors['gps_lock'] = "red"
+            sensors['gps_lock'] = false
             lcd.invalidate()
             return true
         end
@@ -177,7 +180,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, "", opts)
 
         -- Ground Speed
         local opts = {
@@ -187,7 +190,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, "", opts)
 
         -- Distance
         local opts = {
@@ -197,7 +200,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, "", opts)
 
         -- Voltage
         local opts = {
@@ -207,7 +210,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'], "V", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, "V", opts)
 
         -- Fuel
         local opts = {
@@ -217,7 +220,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'], "%", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, "%", opts)
 
 
         -- Current
@@ -228,7 +231,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'], "A", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, "A", opts)
 
         -- Current
         local opts = {
@@ -238,7 +241,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'], "%", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, "%", opts)
 
         -- Satellites
         local opts = {
@@ -248,7 +251,7 @@ function inavdash.paint()
             fontvalue = FONT_L,
             fontlabel = FONT_XS,
         }
-        inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'], "", opts)
+        inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
 
 
     end
@@ -276,7 +279,7 @@ function inavdash.paint()
             },
             colorbg = lcd.RGB(40,40,40),
         }
-        inavdash.render.gps_lock.paint(inavdash.layout.gps_lock.x, inavdash.layout.gps_lock.y, inavdash.layout.gps_lock.w, inavdash.layout.gps_lock.h, sensors['gps_lock'], opts)
+        inavdash.render.gps_lock.paint(inavdash.layout.gps_lock.x, inavdash.layout.gps_lock.y, inavdash.layout.gps_lock.w, inavdash.layout.gps_lock.h, sensors['gps_lock'], sensors['satellites'], opts)
     end
 
 end
@@ -302,81 +305,36 @@ function inavdash.wakeup()
         sensors['satellites'] = inavdash.sensors.telemetry.getSensor('satellites')
         sensors['gps_latitude'] = inavdash.sensors.telemetry.getSensor('gps_latitude')
         sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
-        sensors['gps_lock'] = nil -- we update this from the gps lock code in wakeup
+        sensors['flightmode'] = inavdash.sensors.telemetry.getSensor('flightmode')
 
-    end
+        -- GPS Lock logic
+        do
+            -- Detect GPS lock transition
+            local prev = gps_lock_prev
+            local fm = sensors['flightmode']           -- will be nil when no link
 
-    -- === Home locker (no FC home required) ===
-    do
-        local st   = inavdash.render.map.state
-        local sats = tonumber(sensors['satellites']) or 0
-        local lat  = tonumber(sensors['gps_latitude'])
-        local lon  = tonumber(sensors['gps_longitude'])
-        local gs   = tonumber(sensors['groundspeed']) or 0
-
-        -- Keep the indicator persistent once we've locked
-        if st and st._locked then
-            sensors['gps_lock'] = "green"
-        else
-            sensors['gps_lock'] = sensors['gps_lock'] or "red"
-        end
-
-        -- Parameters (tune to taste)
-        local MIN_SATS       = 6
-        local MAX_SPEED_MPS  = 1.5     -- consider "steady" below this
-        local WINDOW_SAMPLES = 10      -- how many recent samples to check
-        local WANDER_METERS  = 10      -- max radius of wander to accept
-
-        -- only try to lock when GPS looks valid and we have a position
-        if sats >= MIN_SATS and lat and lon then
-            -- ring buffer of recent GPS points (lat/lon)
-            st._samples[st._si] = { lat = lat, lon = lon, gs = gs }
-            st._si = (st._si % WINDOW_SAMPLES) + 1
-
-            if not st._locked then
-                -- need the window to be full
-                if #st._samples >= WINDOW_SAMPLES then
-                    -- compute "center" (simple average) and max radius
-                    local sumLat, sumLon, maxR = 0, 0, 0
-                    for i = 1, WINDOW_SAMPLES do
-                        sumLat = sumLat + (st._samples[i].lat or lat)
-                        sumLon = sumLon + (st._samples[i].lon or lon)
-                    end
-                    local cLat = sumLat / WINDOW_SAMPLES
-                    local cLon = sumLon / WINDOW_SAMPLES
-
-                    -- check wander & speed
-                    local ok = true
-                    for i = 1, WINDOW_SAMPLES do
-                        local s = st._samples[i]
-                        local dx, dy = inavdash.render.map.enu_dxdy(s.lat, s.lon, cLat, cLon)
-                        local r = inavdash.render.map.hypot(dx, dy)
-                        if r > maxR then maxR = r end
-                        if (s.gs or 0) > MAX_SPEED_MPS then ok = false break end
-                    end
-
-                     -- Clear, non-overlapping thresholds:
-                    --  > WANDER_METERS           => RED (no lock)
-                    --  <= WANDER_METERS and > WANDER_METERS/2 => ORANGE (steady, tightening)
-                    --  <= WANDER_METERS/2        => GREEN (lock + beep)
-                    if (not ok) or (maxR > WANDER_METERS) then
-                        sensors['gps_lock'] = "red"
-                    elseif ok and maxR > (WANDER_METERS / 2) then
-                        sensors['gps_lock'] = "orange"
-                    else -- ok and maxR <= WANDER_METERS/2
-                        st.home_lat, st.home_lon = cLat, cLon
-                        st._locked = true
-                        if system and system.playTone then system.playTone(1000, 500, 0) end
-                        sensors['gps_lock'] = "green"
-                    end
-                end
+            -- derive purely from flightmode, but gate on link
+            local new_lock
+            if fm == nil then
+            new_lock = false                         -- no link/value => not locked
+            elseif fm == 2 then
+            new_lock = false                         -- whatever 2 is in your map (e.g., no-GPS mode)
+            else
+            new_lock = true                          -- all other known modes => treat as “locked”
             end
+
+            -- optional: one-shot beep on false -> true
+            if prev == false and new_lock == true then
+                system.playTone(1000, 500, 0)
+            end
+            gps_lock_prev = new_lock
+
+            -- expose to the UI
+            sensors['gps_lock'] = new_lock       
         end
+        
 
-        -- Optional: simple manual clear (e.g., if you add a menu later)
-        -- if some_condition then st.home_lat, st.home_lon, st._locked, st._samples, st._si = nil, nil, false, {}, 1 end
     end
-
 
 
     if inavdash.render.ah then

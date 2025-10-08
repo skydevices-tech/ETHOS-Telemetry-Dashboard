@@ -11,6 +11,8 @@ local externalModule = nil
 local telemetryType
 
 
+local flightmodes = assert(loadfile("sensors/flightmodes.lua"))()
+
 local function getTelemetryType()
 
     -- only do heavy calls when we *don’t* already have a sensor
@@ -269,6 +271,29 @@ local sensorTable = {
         },
     },  
 
+    flightmode = {
+        name = "Flight Mode",
+        sensors = {
+            sport = { 
+                    { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0470, subId = 0 }, 
+                    },
+            crsf = { "Flight mode" },
+        },
+        transform = function(value)
+            if currentTelemetryType == "sport" then
+                if value then
+                    return flightmodes.eval("sport", value)
+                end
+                return value
+            else
+                if value then
+                    return flightmodes.eval("crsf", value)
+                end
+            end
+        end        
+    }, 
+
+    
 }
 
 --[[ 
