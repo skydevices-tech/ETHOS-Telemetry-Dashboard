@@ -161,7 +161,7 @@ end
 --   keep_home_margin = 18 (px)
 --   show_grid = true
 --   light_on_gps_ms = 2000  (optional reduced drawing when GPS first appears)
-function RenderMap.wakeup(sensors, x, y, w, h, opts)
+function RenderMap.wakeup(x, y, w, h, sensors, opts)
   opts = opts or {}
 
   local lat  = sval(sensors, "latitude",  0)
@@ -352,15 +352,6 @@ function RenderMap.paint()
   local W,H = lcd.getWindowSize()
   lcd.setClipping(0,0,W,H)
 end
-
--- State detection for home position
-RenderMap.state = RenderMap.state or {
-  home_lat = nil,
-  home_lon = nil,
-  _samples = {},
-  _si = 1,
-  _locked = false,
-}
 
 
 RenderMap.hypot = hypot

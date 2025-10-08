@@ -92,46 +92,6 @@ local function getScreenSizes()
   inavdash.layout = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
 end
 
-local function resetHomeAsk()
-
-    local buttons = {{
-        label = "OK",
-        action = function()
-            local st = inavdash.render.map.state
-            st.home_lat = nil
-            st.home_lon = nil
-            st._locked = false
-            st._samples = {}
-            st._si = 1
-
-            for k, _ in pairs(sensors) do
-                sensors[k] = nil
-            end
-
-            sensors['gps_lock'] = false
-            lcd.invalidate()
-            return true
-        end
-    }, {
-        label = "CANCEL",
-        action = function()
-            return true
-        end
-    }}
-
-    form.openDialog({
-        width = nil,
-        title =  "Reset Home Location",
-        message = "Are you sure you want to reset the home location?",
-        buttons = buttons,
-        wakeup = function()
-        end,
-        paint = function()
-        end,
-        options = TEXT_LEFT
-    })
-
-end   
 
 function inavdash.create()
 
@@ -331,6 +291,22 @@ function inavdash.wakeup()
 
             -- expose to the UI
             sensors['gps_lock'] = new_lock       
+            
+            -- Simple home update (no map.state table)
+            local lat = sensors['gps_latitude']
+            local lon = sensors['gps_longitude']
+            if new_lock then
+                if (not sensors['home_latitude'] or sensors['home_latitude'] == 0)
+                   and lat and lon then
+                    sensors['home_latitude']  = lat
+                    sensors['home_longitude'] = lon
+                end
+            else
+                sensors['home_latitude']  = 0
+                sensors['home_longitude'] = 0
+            end
+
+
         end
         
 
@@ -347,41 +323,40 @@ function inavdash.wakeup()
     end
 
     if inavdash.render.map then
-    local opts = {
-    north_up = false,
-    show_grid = true,
-    home_icon = "gfx/home.png",
-    own_icon  = "gfx/arrow.png",
-    show_speed_vec = false,
-    colors = {
-        bg    = lcd.RGB(0, 60, 0),
-        grid  = lcd.RGB(0, 90, 0),
-        trail = lcd.RGB(170, 220, 170),
-        own   = lcd.RGB(255, 255, 255),
-        home  = lcd.RGB(255, 255, 255),
-        text  = lcd.RGB(255, 255, 255),
-    },
-    -- only provide home once locked (use the map state you maintain):
-    home = (inavdash.render.map.state and inavdash.render.map.state._locked) and {
-        lat = inavdash.render.map.state.home_lat,
-        lon = inavdash.render.map.state.home_lon,
-    } or nil,
+        local opts = {
+            north_up = false,
+            show_grid = true,
+            home_icon = "gfx/home.png",
+            own_icon  = "gfx/arrow.png",
+            show_speed_vec = false,
+            colors = {
+                bg    = lcd.RGB(0, 60, 0),
+                grid  = lcd.RGB(0, 90, 0),
+                trail = lcd.RGB(170, 220, 170),
+                own   = lcd.RGB(255, 255, 255),
+                home  = lcd.RGB(255, 255, 255),
+                text  = lcd.RGB(255, 255, 255),
+            },
+            -- home directly from sensors
+            home = sensors['gps_lock'] and {
+                lat = sensors['home_latitude'],
+                lon = sensors['home_longitude'],
+            } or nil,
 
-    -- optional: reduce draw load for ~2s when GPS first appears
-    light_on_gps_ms = 2000,
-    }
+            light_on_gps_ms = 2000,
+        }
 
-    local s = {
-        latitude    = sensors['gps_latitude'],
-        longitude   = sensors['gps_longitude'],
-        heading     = sensors['heading'],
-        groundspeed = sensors['groundspeed'],
-        home_lat    = sensors['home_latitude'],   -- if available
-        home_lon    = sensors['home_longitude'],  -- if available
-    }
+        local s = {
+            latitude    = sensors['gps_latitude'],
+            longitude   = sensors['gps_longitude'],
+            heading     = sensors['heading'],
+            groundspeed = sensors['groundspeed'],
+            home_lat    = sensors['home_latitude'],
+            home_lon    = sensors['home_longitude'], 
+        }
 
-    local box = inavdash.layout.map
-    inavdash.render.map.wakeup(s, box.x, box.y, box.w, box.h, opts)
+        local box = inavdash.layout.map
+        inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s,opts)
     end
 
 
@@ -406,9 +381,7 @@ function inavdash.event()
 end
 
 function inavdash.menu()
-    return {
-        {"Reset home location", resetHomeAsk},
-    }
+    --
 end
 
 return inavdash
