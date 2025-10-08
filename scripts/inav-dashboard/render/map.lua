@@ -161,7 +161,7 @@ end
 --   keep_home_margin = 18 (px)
 --   show_grid = true
 --   light_on_gps_ms = 2000  (optional reduced drawing when GPS first appears)
-function RenderMap.wakeup(sensors, x, y, w, h, opts)
+function RenderMap.wakeup(x, y, w, h, sensors, opts)
   opts = opts or {}
 
   local lat  = sval(sensors, "latitude",  0)
@@ -250,6 +250,7 @@ function RenderMap.wakeup(sensors, x, y, w, h, opts)
     mapRot  = map_up_deg,
     colors  = {bg=col_bg, grid=col_grid, own=col_own, home=col_home, text=col_text},
     own_tri = own_tri,
+    show_distance = (o.show_distance ~= false),
     home_xy = { x = x + hx, y = y + hy },
     spd_vec = (vx and vy) and { cx, cy, vx, vy } or nil,
     readout = { gs = gs, dist = dist_m, brg = brg },
@@ -334,33 +335,25 @@ function RenderMap.paint()
   end
 
   -- readouts
-  lcd.color(F.colors.text); lcd.font(FONT_XS)
-  local gs = tonumber(F.readout.gs) or 0
-  local dist_ft = (tonumber(F.readout.dist) or 0) * 3.28084
-  local brg = tonumber(F.readout.brg) or 0
-  local dist_ft_0 = math.floor(dist_ft + 0.5)
-  local brg_0 = (math.floor(brg + 0.5)) % 360
+  if F.show_distance then
+    lcd.color(F.colors.text); lcd.font(FONT_XS)
+    local gs = tonumber(F.readout.gs) or 0
+    local dist_ft = (tonumber(F.readout.dist) or 0) * 3.28084
+    local brg = tonumber(F.readout.brg) or 0
+    local dist_ft_0 = math.floor(dist_ft + 0.5)
+    local brg_0 = (math.floor(brg + 0.5)) % 360
 
-  dtext(x + 4, y + 4, string.format("%.1f u/s", gs))
-  dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
-
-  -- heading tape on sides (W/E markers like your screenshot)
-  dtext(x + 2,  y + h/2 - 6, "W")
-  dtext(x + w - 10, y + h/2 - 6, "E")
+    dtext(x + 4, y + 4, string.format("%.1f u/s", gs))
+    dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
+  end
+    -- heading tape on sides (W/E markers like your screenshot)
+    dtext(x + 2,  y + h/2 - 6, "W")
+    dtext(x + w - 10, y + h/2 - 6, "E")
 
   -- reset clip
   local W,H = lcd.getWindowSize()
   lcd.setClipping(0,0,W,H)
 end
-
--- State detection for home position
-RenderMap.state = RenderMap.state or {
-  home_lat = nil,
-  home_lon = nil,
-  _samples = {},
-  _si = 1,
-  _locked = false,
-}
 
 
 RenderMap.hypot = hypot

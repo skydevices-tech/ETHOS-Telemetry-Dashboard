@@ -20,7 +20,7 @@ local gps_lock_prev = false
 -- You can adjust the number of columns/rows/padding to taste
 local GRID = {
   cols   = 30,   -- change to taste
-  rows   = 8,
+  rows   = 16,
   pad    = 2,   -- pixel gap between cells
   header = 0,   -- reserve a fixed px header if you ever need a title bar
 }
@@ -28,18 +28,20 @@ local GRID = {
 -- Place widgets in grid terms (col/row are 1-based)
 local GRID_WIDGETS = {
   -- Full-bleed AH across the whole grid:
-  ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 6 },
-  map           =  { col = 17, row = 1, colspan = 10, rowspan = 6 },
-  altitude      =  { col = 27, row = 1, colspan = 4,  rowspan = 2 },
-  groundspeed   =  { col = 27, row = 3, colspan = 4,  rowspan = 2 },  
-  heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 2 },
-  satellites    =  { col = 27, row = 7, colspan = 4,  rowspan = 2 },
-  gps           =  { col = 17,  row = 7, colspan = 6,  rowspan = 2 },
-  gps_lock      =  { col = 23,  row = 7, colspan = 4,  rowspan = 2 },
-  voltage       =  { col = 1,  row = 7, colspan = 4,  rowspan = 3 },
-  current       =  { col = 5,  row = 7, colspan = 4,  rowspan = 3 },  
-  fuel          =  { col = 9,  row = 7, colspan = 4,  rowspan = 3 },
-  rssi          =  { col = 13, row = 7, colspan = 4,  rowspan = 3 },
+  ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
+  flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
+  map           =  { col = 13, row = 1, colspan = 14, rowspan = 8 },
+  altitude      =  { col = 23, row = 9, colspan = 4,  rowspan = 4 },
+  groundspeed   =  { col = 19, row = 9, colspan = 4,  rowspan = 4 },  
+  heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 4 },
+  satellites    =  { col = 27, row = 9, colspan = 4,  rowspan = 4 },
+  gps           =  { col = 19,  row = 13, colspan = 8,  rowspan = 4 },
+  gps_lock      =  { col = 27,  row = 13, colspan = 4,  rowspan = 4 },
+  voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+  current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
+  fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+  rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
+  home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
 }
 
 
@@ -92,46 +94,6 @@ local function getScreenSizes()
   inavdash.layout = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
 end
 
-local function resetHomeAsk()
-
-    local buttons = {{
-        label = "OK",
-        action = function()
-            local st = inavdash.render.map.state
-            st.home_lat = nil
-            st.home_lon = nil
-            st._locked = false
-            st._samples = {}
-            st._si = 1
-
-            for k, _ in pairs(sensors) do
-                sensors[k] = nil
-            end
-
-            sensors['gps_lock'] = false
-            lcd.invalidate()
-            return true
-        end
-    }, {
-        label = "CANCEL",
-        action = function()
-            return true
-        end
-    }}
-
-    form.openDialog({
-        width = nil,
-        title =  "Reset Home Location",
-        message = "Are you sure you want to reset the home location?",
-        buttons = buttons,
-        wakeup = function()
-        end,
-        paint = function()
-        end,
-        options = TEXT_LEFT
-    })
-
-end   
 
 function inavdash.create()
 
@@ -144,6 +106,9 @@ function inavdash.create()
     if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("render/gps.lua"))() end
     if not inavdash.render.gps_lock then inavdash.render.gps_lock = assert(loadfile("render/gps_lock.lua"))() end
     if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
+    if not inavdash.render.flightmode then inavdash.render.flightmode = assert(loadfile("render/flightmode.lua"))() end
+    if not inavdash.render.hd then inavdash.render.hd = assert(loadfile("render/homedirection.lua"))() end
+
 
 end
 
@@ -171,6 +136,17 @@ function inavdash.paint()
     end            
 
     if inavdash.render.telemetry then
+
+        -- Flight Mode
+        local opts = {
+            colorbg = lcd.RGB(40,40,40),
+            colorvalue = lcd.RGB(255,255,255),
+            colorlabel = lcd.RGB(200,200,200),
+            fontvalue = FONT_L,
+            fontlabel = FONT_XS,
+        }
+        inavdash.render.flightmode.paint(inavdash.layout.flightmode.x, inavdash.layout.flightmode.y, inavdash.layout.flightmode.w, inavdash.layout.flightmode.h, "Flight Mode", sensors['flightmode'] or 0, "", opts)
+
 
         -- Altitude
         local opts = {
@@ -254,6 +230,8 @@ function inavdash.paint()
         inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
 
 
+        if inavdash.render.hd then inavdash.render.hd.paint() end
+
     end
 
 
@@ -331,7 +309,35 @@ function inavdash.wakeup()
 
             -- expose to the UI
             sensors['gps_lock'] = new_lock       
+            
+            -- Simple home update (no map.state table)
+            local lat = sensors['gps_latitude']
+            local lon = sensors['gps_longitude']
+            if new_lock then
+                if (not sensors['home_latitude'] or sensors['home_latitude'] == 0)
+                   and lat and lon then
+                    sensors['home_latitude']  = lat
+                    sensors['home_longitude'] = lon
+                end
+            else
+                sensors['home_latitude']  = 0
+                sensors['home_longitude'] = 0
+            end
+
+
         end
+
+        -- Virtual sensor: distance from home (meters)
+        do
+        local lat, lon  = sensors['gps_latitude'], sensors['gps_longitude']
+        local hlat, hlon = sensors['home_latitude'], sensors['home_longitude']
+        if sensors['gps_lock'] and lat and lon and hlat and hlon and hlat ~= 0 and hlon ~= 0 then
+            local dx, dy = inavdash.render.map.enu_dxdy(lat, lon, hlat, hlon) -- meters East/North
+            sensors['gps_distancehome'] = inavdash.render.map.hypot(dx, dy)   -- meters
+        else
+            sensors['gps_distancehome'] = 0
+        end
+        end      
         
 
     end
@@ -347,44 +353,65 @@ function inavdash.wakeup()
     end
 
     if inavdash.render.map then
-    local opts = {
-    north_up = false,
-    show_grid = true,
-    home_icon = "gfx/home.png",
-    own_icon  = "gfx/arrow.png",
-    show_speed_vec = false,
-    colors = {
-        bg    = lcd.RGB(0, 60, 0),
-        grid  = lcd.RGB(0, 90, 0),
-        trail = lcd.RGB(170, 220, 170),
-        own   = lcd.RGB(255, 255, 255),
-        home  = lcd.RGB(255, 255, 255),
-        text  = lcd.RGB(255, 255, 255),
-    },
-    -- only provide home once locked (use the map state you maintain):
-    home = (inavdash.render.map.state and inavdash.render.map.state._locked) and {
-        lat = inavdash.render.map.state.home_lat,
-        lon = inavdash.render.map.state.home_lon,
-    } or nil,
+        local opts = {
+            north_up = false,
+            show_grid = true,
+            show_distance = false, 
+            home_icon = "gfx/home.png",
+            own_icon  = "gfx/arrow.png",
+            show_speed_vec = false,
+            colors = {
+                bg    = lcd.RGB(0, 60, 0),
+                grid  = lcd.RGB(0, 90, 0),
+                trail = lcd.RGB(170, 220, 170),
+                own   = lcd.RGB(255, 255, 255),
+                home  = lcd.RGB(255, 255, 255),
+                text  = lcd.RGB(255, 255, 255),
+            },
+            -- home directly from sensors
+            home = sensors['gps_lock'] and {
+                lat = sensors['home_latitude'],
+                lon = sensors['home_longitude'],
+            } or nil,
 
-    -- optional: reduce draw load for ~2s when GPS first appears
-    light_on_gps_ms = 2000,
-    }
+            light_on_gps_ms = 2000,
+        }
 
-    local s = {
-        latitude    = sensors['gps_latitude'],
-        longitude   = sensors['gps_longitude'],
-        heading     = sensors['heading'],
-        groundspeed = sensors['groundspeed'],
-        home_lat    = sensors['home_latitude'],   -- if available
-        home_lon    = sensors['home_longitude'],  -- if available
-    }
+        local s = {
+            latitude    = sensors['gps_latitude'],
+            longitude   = sensors['gps_longitude'],
+            heading     = sensors['heading'],
+            groundspeed = sensors['groundspeed'],
+            home_lat    = sensors['home_latitude'],
+            home_lon    = sensors['home_longitude'], 
+        }
 
-    local box = inavdash.layout.map
-    inavdash.render.map.wakeup(s, box.x, box.y, box.w, box.h, opts)
+        local box = inavdash.layout.map
+        inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s,opts)
     end
 
-
+    if inavdash.render.hd then
+    local box = inavdash.layout.home_dir
+    local s = {
+        latitude  = sensors['gps_latitude'],
+        longitude = sensors['gps_longitude'],
+        heading   = sensors['heading'],
+        home_lat  = sensors['home_latitude'],
+        home_lon  = sensors['home_longitude'],
+    }
+    local opts = {
+        images = {
+            forward = "gfx/hd_fwd.png",
+            left    = "gfx/hd_left.png",
+            right   = "gfx/hd_right.png",
+            back    = "gfx/hd_rev.png",
+        },
+        colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
+        show_ring = true,
+        show_text = true,
+    }
+    inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
+    end
 
     -- Paint only if we are on screen
     if lcd.isVisible() then
@@ -406,9 +433,7 @@ function inavdash.event()
 end
 
 function inavdash.menu()
-    return {
-        {"Reset home location", resetHomeAsk},
-    }
+    --
 end
 
 return inavdash
