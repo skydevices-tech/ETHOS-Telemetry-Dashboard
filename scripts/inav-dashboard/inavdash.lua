@@ -366,7 +366,7 @@ function inavdash.wakeup()
 
             -- optional: one-shot beep on false -> true
             if prev == false and new_lock == true then
-                system.playTone(1000, 500, 0)
+                --system.playTone(1000, 500, 0)
             end
             gps_lock_prev = new_lock
 
