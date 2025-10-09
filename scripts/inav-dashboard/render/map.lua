@@ -192,6 +192,15 @@ function RenderMap.wakeup(x, y, w, h, sensors, opts)
   local ppm      = opts.ppm or clamp(ppm_auto, ppm_min, ppm_max)
   if not finite(ppm) or ppm <= 0 then ppm = 1 end
 
+  -- ensure home stays inside the view circle no matter what
+  local dist_m = math.sqrt(homeE*homeE + homeN*homeN)
+  local r_px   = math.min(w, h)/2 - margin
+  if r_px > 0 and dist_m > 0 then
+    local ppm_req = r_px / dist_m               -- max pixels per meter to keep home in
+    ppm = math.min(ppm, ppm_req)                -- tighten zoom if needed
+    ppm = clamp(ppm, 0.0001, ppm_max)           -- keep sane bounds
+  end
+
   -- Map rotation: heading-up (default) or North-up
   local map_up_deg = (opts.north_up and 0 or heading)
   local r = math.rad(map_up_deg)
