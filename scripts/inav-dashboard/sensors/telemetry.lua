@@ -365,6 +365,13 @@ local function _createSportSensor(sensorDef, sensorKey)
     local cfg = autoCreate[sensorKey]
     if not cfg then return false end
 
+    -- Lets get the Physical ID we know should have been found by now
+    local voltageSensor = system.getSource({ appId = 0x0210 })
+    local physId = voltageSensor and voltageSensor:physId()
+    if not physId then
+        return false
+    end
+ 
     -- One-shot per {protocol|appId|subId}
     local defKey = _defKey(sensorDef)
     if _createTried[defKey] then return false end
@@ -373,15 +380,6 @@ local function _createSportSensor(sensorDef, sensorKey)
     -- If it suddenly exists now, bail (double-check before creating)
     local already = system.getSource(sensorDef)
     if already then return false end
-
-    -- Lets get the Physical ID we know should have been found by now
-    local voltageSensor = system.getSource({ appId = 0x0210 })
-    local physId = voltageSensor and voltageSensor:physId()
-    if not physId then
-        print("No voltage sensor or physId; cannot create sensor")
-        return false
-    end
-    print("Physical ID found:", physId)
 
     -- ✅ Create correct type
     local s = model.createSensor({ type = SENSOR_TYPE_DIY })
