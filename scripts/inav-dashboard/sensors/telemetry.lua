@@ -286,7 +286,6 @@ local sensorTable = {
 local autoCreate = {
     roll =  {
         name     = "Roll",
-        physId   = 0x1B,
         unit     = UNIT_DEGREE,
         decimals = 1,
         appId    = 0x0440,
@@ -294,7 +293,6 @@ local autoCreate = {
     },
     pitch = {
         name     = "Pitch",
-        physId   = 0x1B,
         unit     = UNIT_DEGREE,
         decimals = 1,
         appId    = 0x0430,
@@ -302,7 +300,6 @@ local autoCreate = {
     },
     flightmode = {
         name     = "Flight Mode",
-        physId   = 0x1B,
         unit     = UNIT_RAW,
         decimals = 0,
         appId    = 0x0470,
@@ -310,7 +307,6 @@ local autoCreate = {
     },
     gps_speed = {
         name     = "GPS Speed",
-        physId   = 0x1B,
         unit     = UNIT_KNOT,
         decimals = 0,
         appId    = 0x0830,
@@ -318,7 +314,6 @@ local autoCreate = {
     },    
     satellites = {
         name     = "Satellites",
-        physId   = 0x1B,
         unit     = UNIT_RAW,
         decimals = 0,
         appId    = 0x0480,
@@ -371,6 +366,12 @@ local function _createSportSensor(sensorDef, sensorKey)
     if not physId then
         return false
     end
+
+    -- Make sure we also have the band of the sensor
+    local band = voltageSensor and voltageSensor:band()
+    if not band then
+        return false
+    end
  
     -- One-shot per {protocol|appId|subId}
     local defKey = _defKey(sensorDef)
@@ -388,6 +389,7 @@ local function _createSportSensor(sensorDef, sensorKey)
     s:decimals(cfg.decimals)
     s:protocolDecimals(cfg.decimals)
     s:physId(physId)
+    s:band(band)
     s:minimum(-1000000000); 
     s:maximum(2147483647)    
 
