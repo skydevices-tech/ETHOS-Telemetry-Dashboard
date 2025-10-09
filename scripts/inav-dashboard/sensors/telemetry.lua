@@ -18,6 +18,11 @@ local _createTried = {}
 local _startTime = os.clock()         -- seconds since Lua VM start
 local _lastCreateTime = -1            -- time of last successful create (seconds)
 
+local function round(num, numDecimalPlaces)
+  local mult = 10^(numDecimalPlaces or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+
 local function _creationAllowed()
     local now = os.clock()
     -- block creates during first 5s of runtime
@@ -102,6 +107,12 @@ local sensorTable = {
             },
             crsf = { "Rx Current" },
         },
+        transform = function(value)
+            if value then
+                return round(value, 2) 
+            end
+            return value
+        end        
     },
 
     -- ESC Temperature Sensors
@@ -125,6 +136,12 @@ local sensorTable = {
             },
             crsf  = { "GPS alt"},
         },
+        transform = function(value)
+            if value then
+                return round(value, 2) 
+            end
+            return value
+        end        
     },    
 
     consumption = {
@@ -149,6 +166,12 @@ local sensorTable = {
             },
             crsf = { "GPS Heading" },
         },
+        transform = function(value)
+            if value then
+                return round(value, 2) 
+            end
+            return value
+        end        
     },
 
     roll = {
@@ -201,6 +224,12 @@ local sensorTable = {
             sport = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0830, subId = 0 }, },
             crsf  = { "GPS speed"},
         },
+        transform = function(value)
+            if value then
+                return round(value, 2) 
+            end
+            return value
+        end
     },    
 
     satellites = {
