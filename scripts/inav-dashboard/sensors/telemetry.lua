@@ -374,13 +374,22 @@ local function _createSportSensor(sensorDef, sensorKey)
     local already = system.getSource(sensorDef)
     if already then return false end
 
+    -- Lets get the Physical ID we know should have been found by now
+    local voltageSensor = system.getSource({ appId = 0x0210 })
+    local physId = voltageSensor and voltageSensor:physId()
+    if not physId then
+        print("No voltage sensor or physId; cannot create sensor")
+        return false
+    end
+    print("Physical ID found:", physId)
+
     -- ✅ Create correct type
     local s = model.createSensor({ type = SENSOR_TYPE_DIY })
     s:name(cfg.name)
     s:unit(cfg.unit)
     s:decimals(cfg.decimals)
     s:protocolDecimals(cfg.decimals)
-    s:physId(cfg.physId)
+    s:physId(physId)
     s:minimum(-1000000000); 
     s:maximum(2147483647)    
 
