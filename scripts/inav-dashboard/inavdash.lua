@@ -208,7 +208,7 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, units['heading'], opts)
+            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading']) or 0, units['heading'], opts)
         end
 
         -- Voltage
