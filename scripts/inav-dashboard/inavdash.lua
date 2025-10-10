@@ -482,27 +482,26 @@ function inavdash.wakeup()
     end
 
 
-    -- Flight Mode change detection with audio playback
-    do
-        local fm = sensors['flightmode']
+        -- Flight Mode change detection with audio playback
+        do
+        local fm   = sensors['flightmode']
         local prev = inavdash._prev_flightmode
 
-        -- Reset home if we enter a no-GPS mode
-        if fm == 0 and prev ~= 0 then
-            sensors['home_latitude']  = 0
-            sensors['home_longitude'] = 0
-            sensors['gps_distancehome'] = 0
+        -- NEW: on transition to DISARMED, clear home + reset widgets
+
+        if (fm == 0 or fm == 1) and (prev ~= 0 or prev ~= 1) then
+            sensors['home_latitude']     = 0
+            sensors['home_longitude']    = 0
+            sensors['gps_distancehome']  = 0
         end
 
-
-        -- Only trigger if we have a valid mode now, and either it's the first one
-        -- (prev == nil) or it has changed since last time.
+        -- existing: play mode change sound
         if fm and (prev == nil or fm ~= prev) then
             local file = string.format("audio/en/default/fm-%d.wav", fm)
             system.playFile(file)
             inavdash._prev_flightmode = fm
         end
-    end
+        end
 
 
     -- Paint only if we are on screen

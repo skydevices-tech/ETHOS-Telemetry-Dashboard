@@ -399,6 +399,7 @@ function RenderMap.paint()
 end
 
 
+
 RenderMap.hypot = hypot
 RenderMap.enu_dxdy = enu_dxdy
 RenderMap.meters_per_deg = meters_per_deg
