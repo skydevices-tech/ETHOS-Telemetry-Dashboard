@@ -39,6 +39,24 @@ local function fmt_dist_m(m)  -- meters -> "123m" / "1.2km"
   return string.format("%dm", math.floor(m + 0.5))
 end
 
+-- Unit-aware distance formatter
+local function fmt_distance(m, u)
+  m = tonumber(m)
+  if not m or m ~= m or m < 0 then return "--" end
+  u = tostring(u or "m")
+  if u == "ft" or u == "feet" then
+    return string.format("%dft", math.floor(m * 3.28084 + 0.5))
+  elseif u == "km" then
+    return string.format("%.2fkm", m / 1000.0)
+  elseif u == "mi" or u == "mile" or u == "miles" then
+    return string.format("%.2fmi", m / 1609.344)
+  elseif u == "nm" or u == "nmi" then
+    return string.format("%.2fnm", m / 1852.0)
+  else
+    return string.format("%dm", math.floor(m + 0.5))
+  end
+end
+
 -- atan2 across Lua versions
 local function atan2(y, x)
   if math.atan2 then return math.atan2(y, x) end
@@ -79,9 +97,12 @@ end
 -- ===== public API =====
 
 -- wakeup: compute which arrow to show (or none), distance, etc., and capture box/colors
-function HD.wakeup(x, y, w, h, sensors, opts)
+function HD.wakeup(x, y, w, h, sensors, units, opts)
   opts = opts or {}
   sensors = sensors or {}
+
+  -- preferred distance unit from units table (fallback to meters)
+  local dist_unit = (units and (units.distance or units.altitude)) or "m"
 
   local lat  = tonumber(sensors.latitude)  or tonumber(sensors.gps_latitude)  or 0
   local lon  = tonumber(sensors.longitude) or tonumber(sensors.gps_longitude) or 0
@@ -133,7 +154,7 @@ function HD.wakeup(x, y, w, h, sensors, opts)
       selected = "back"
     end
 
-    status = fmt_dist_m(dist_m)
+    status = fmt_distance(dist_m, dist_unit)
   elseif haveGPS and not haveHome then
     status = "NO HOME"
   end

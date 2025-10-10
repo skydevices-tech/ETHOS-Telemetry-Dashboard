@@ -163,7 +163,7 @@ end
 --   keep_home_margin = 18 (px)
 --   show_grid = true
 --   light_on_gps_ms = 2000  (optional reduced drawing when GPS first appears)
-function RenderMap.wakeup(x, y, w, h, sensors, opts)
+function RenderMap.wakeup(x, y, w, h, sensors, units, opts)
   opts = opts or {}
 
   local lat  = sval(sensors, "latitude",  0)
@@ -228,6 +228,10 @@ function RenderMap.wakeup(x, y, w, h, sensors, opts)
   local brg = (math.deg(atan2(homeE, homeN)) + 360) % 360
 
   -- speed vector (projected along course)
+  -- units (from telemetry table if provided)
+  local speed_unit = (units and (units.groundspeed or units.speed)) or "kt"
+  local dist_unit  = (units and (units.distance or units.altitude)) or "m"
+
   local vx, vy = nil, nil
   if gs and gs > 0 then
     local cr = math.rad(opts.north_up and course - map_up_deg or 0)  -- heading-up already aligned
@@ -265,7 +269,7 @@ function RenderMap.wakeup(x, y, w, h, sensors, opts)
     show_zoom = (o.show_zoom == true),
     home_xy = { x = x + hx, y = y + hy },
     spd_vec = (vx and vy) and { cx, cy, vx, vy } or nil,
-    readout = { gs = gs, dist = dist_m, brg = brg },
+    readout = { gs = gs, dist = dist_m, brg = brg, speed_unit = speed_unit, dist_unit = dist_unit },
     show_grid = (o.show_grid ~= false),
     grid_step = (opts.grid_step or DEFAULT_GRID_STEP),
     north_up  = (o.north_up == true),
@@ -356,7 +360,7 @@ function RenderMap.paint()
       local dist_ft_0 = math.floor(dist_ft + 0.5)
       local brg_0 = (math.floor(brg + 0.5)) % 360
 
-      dtext(x + 4, y + 4, string.format("%.1f u/s", gs))
+      dtext(x + 4, y + 4, string.format("%.1f %s", gs, F.readout.speed_unit or ""))
       dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
     end
 

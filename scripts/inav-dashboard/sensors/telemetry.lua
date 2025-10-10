@@ -34,7 +34,6 @@ local function _creationAllowed()
     return true
 end
 
-
 local sensorTable = {
 
     -- RSSI Sensors
@@ -311,6 +310,58 @@ local sensorTable = {
 }
 
 
+local unitMap = {
+    [UNIT_MILLIVOLT]             = "mV",
+    [UNIT_VOLT]                  = "V",
+    [UNIT_MILLIAMPERE]           = "mA",
+    [UNIT_AMPERE]                = "A",
+    [UNIT_MILLIAMPERE_HOUR]      = "mAh",
+    [UNIT_AMPERE_HOUR]           = "Ah",
+    [UNIT_MILLIWATT]             = "mW",
+    [UNIT_WATT]                  = "W",
+
+    [UNIT_CENTIMETER]            = "cm",
+    [UNIT_METER]                 = "m",
+    [UNIT_KILOMETER]             = "km",
+    [UNIT_FOOT]                  = "ft",
+
+    [UNIT_CENTIMETER_PER_SECOND] = "cm/s",
+    [UNIT_METER_PER_SECOND]      = "m/s",
+    [UNIT_METER_PER_MINUTE]      = "m/min",
+    [UNIT_FOOT_PER_SECOND]       = "ft/s",
+    [UNIT_FOOT_PER_MINUTE]       = "ft/min",
+    [UNIT_KILOMETER_PER_HOUR]    = "km/h",
+    [UNIT_MILE_PER_HOUR]         = "mph",
+    [UNIT_KNOT]                  = "kt",
+
+    [UNIT_CELSIUS]               = "°C",
+    [UNIT_FAHRENHEIT]            = "°F",
+    [UNIT_PERCENT]               = "%",
+
+    [UNIT_MICROSECOND]           = "µs",
+    [UNIT_MILLISECOND]           = "ms",
+    [UNIT_SECOND]                = "s",
+    [UNIT_MINUTE]                = "min",
+    [UNIT_HOUR]                  = "h",
+
+    [UNIT_DB]                    = "dB",
+    [UNIT_DBM]                   = "dBm",
+
+    [UNIT_HERTZ]                 = "Hz",
+    [UNIT_MEGAHERTZ]             = "MHz",
+
+    [UNIT_G]                     = "G",
+    [UNIT_DEGREE]                = "°",
+    [UNIT_RADIAN]                = "rad",
+
+    [UNIT_MILLILITER]            = "mL",
+    [UNIT_MILLILITER_PER_MINUTE] = "mL/min",
+    [UNIT_MILLILITER_PER_PULSE]  = "mL/pulse",
+
+    [UNIT_RPM]                   = "rpm",
+    [UNIT_DEGREE_PER_SECOND]     = "°/s",
+}
+
 -- Default definitions for auto-created SPORT sensors.
 local autoCreate = {
     roll =  {
@@ -545,8 +596,15 @@ function telemetry.getSensor(sensorKey)
 
     -- get initial defaults
     local value = source:value()
-    local major = entry and entry.unit or nil
+    local unit = source:unit()
+    local major = nil
     local minor = nil
+
+    if unit and unitMap[unit] then
+        major = unitMap[unit]
+    else
+        major = unit    
+    end
 
     -- ✅ Apply transform if defined
     if entry and type(entry.transform) == "function" then
