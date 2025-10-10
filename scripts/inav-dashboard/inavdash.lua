@@ -467,15 +467,12 @@ function inavdash.wakeup()
             home_lon  = sensors['home_longitude'],
         }
         local opts = {
-            images = {
-                forward = "gfx/hd_fwd.png",
-                left    = "gfx/hd_left.png",
-                right   = "gfx/hd_right.png",
-                back    = "gfx/hd_rev.png",
-            },
             colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
             show_ring = true,
             show_text = true,
+            image = "gfx/hd.png",     -- single image
+            angle_step = 5,           -- 5° buckets
+            flip_180 = false,         -- set true if your hd.png points DOWN by default
         }
         if box then
             inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
