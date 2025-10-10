@@ -162,13 +162,7 @@ local sensorTable = {
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0840 },  
             },
             crsf = { "GPS Heading" },
-        },
-        transform = function(value)
-            if value then
-                return round(value, 2) 
-            end
-            return value
-        end        
+        },       
     },
 
     roll = {
