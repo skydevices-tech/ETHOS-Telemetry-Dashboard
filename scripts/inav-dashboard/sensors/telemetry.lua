@@ -128,10 +128,9 @@ local sensorTable = {
         name = "Altitude",
         sensors = {
             sport = { 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0820 },
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0100 },
-              
-            
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0820 },
+
             },
             crsf  = { "GPS alt"},
         },
