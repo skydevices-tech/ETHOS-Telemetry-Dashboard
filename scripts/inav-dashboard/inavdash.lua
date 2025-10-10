@@ -417,13 +417,14 @@ function inavdash.wakeup()
 
     if inavdash.render.map then
         local opts = {
-            north_up = false,
+            north_up = true,
             show_grid = true,
             show_distance = false, 
             home_icon = "gfx/home.png",
             own_icon  = "gfx/arrow.png",
             show_speed_vec = false,
             show_zoom = true,
+            angle_step = 5,
             colors = {
                 bg    = lcd.RGB(0, 60, 0),
                 grid  = lcd.RGB(0, 90, 0),
@@ -542,6 +543,7 @@ function inavdash.event(widget, category, value, x, y)
         print("Current page:", currentPage)
     end
 end
+
 
 
 function inavdash.menu()
