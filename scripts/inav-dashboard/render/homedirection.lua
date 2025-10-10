@@ -81,8 +81,7 @@ function HD.wakeup(x, y, w, h, sensors, units, opts)
   local lon  = tonumber(sensors.longitude) or tonumber(sensors.gps_longitude) or 0
   local hlat = tonumber(sensors.home_lat)  or tonumber(sensors.home_latitude)  or 0
   local hlon = tonumber(sensors.home_lon)  or tonumber(sensors.home_longitude) or 0
-  --local hdg  = (tonumber(sensors.heading) or 0) % 360
-  local hdg  = ((tonumber(sensors.heading) or 0) + 180) % 360
+  local hdg  = (tonumber(sensors.heading) or 0) % 360
 
   -- colors / visuals
   local colors = opts.colors or {}

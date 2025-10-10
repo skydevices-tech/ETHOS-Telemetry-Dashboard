@@ -195,8 +195,7 @@ function RenderMap.paint()
   if obmp and obmp.rotate then
     local cx,cy = x+w/2,y+h/2
     local step = (F.opts and F.opts.angle_step) or 10
-    --local ang = ((F.readout and F.readout.course) or 0) % 360   -- need to check if invert logic applies for elrs?
-    local ang = (((F.readout and F.readout.course) or 0) + 180) % 360
+    local ang = ((F.readout and F.readout.course) or 0) % 360   -- need to check if invert logic applies for elrs?
     local bucket = step>0 and (math.floor((ang+step/2)/step)*step) or ang
     local rc = RenderMap._rot_cache
     if rc.angle~=bucket or not rc.bmp then
