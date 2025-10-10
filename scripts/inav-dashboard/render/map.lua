@@ -2,6 +2,8 @@
 -- North-up or Heading-up mini map with home pointer. Integer-only drawing,
 -- no polygons, NaN/Inf guards, atan2 compatibility, and optional light mode.
 
+local DEFAULT_GRID_STEP = 32  -- pixels between grid lines
+
 local RenderMap = {
   _frame = nil,
   _light_until = nil,   -- optional light mode timestamp (ms)
@@ -260,10 +262,12 @@ function RenderMap.wakeup(x, y, w, h, sensors, opts)
     colors  = {bg=col_bg, grid=col_grid, own=col_own, home=col_home, text=col_text},
     own_tri = own_tri,
     show_distance = (o.show_distance ~= false),
+    show_zoom = (o.show_zoom == true),
     home_xy = { x = x + hx, y = y + hy },
     spd_vec = (vx and vy) and { cx, cy, vx, vy } or nil,
     readout = { gs = gs, dist = dist_m, brg = brg },
     show_grid = (o.show_grid ~= false),
+    grid_step = (opts.grid_step or DEFAULT_GRID_STEP),
     north_up  = (o.north_up == true),
     opts      = { angle_step = o.angle_step or 10 }, -- quantize rotation to reduce churn
   }
@@ -292,7 +296,7 @@ function RenderMap.paint()
   -- optional grid
   if F.show_grid and not light then
     lcd.color(F.colors.grid)
-    local step = 32
+    local step = F.grid_step or DEFAULT_GRID_STEP
     for gx = x, x+w, step do dline(gx, y, gx, y+h) end
     for gy = y, y+h, step do dline(x, gy, x+w, gy) end
   end
@@ -338,23 +342,49 @@ function RenderMap.paint()
     end
   end
 
-  -- speed vector
-  if F.spd_vec then
-    dline(F.spd_vec[1], F.spd_vec[2], F.spd_vec[3], F.spd_vec[4])
+    -- speed vector
+    if F.spd_vec then
+      dline(F.spd_vec[1], F.spd_vec[2], F.spd_vec[3], F.spd_vec[4])
+    end
+
+    -- readouts
+    if F.show_distance then
+      lcd.color(F.colors.text); lcd.font(FONT_XS)
+      local gs = tonumber(F.readout.gs) or 0
+      local dist_ft = (tonumber(F.readout.dist) or 0) * 3.28084
+      local brg = tonumber(F.readout.brg) or 0
+      local dist_ft_0 = math.floor(dist_ft + 0.5)
+      local brg_0 = (math.floor(brg + 0.5)) % 360
+
+      dtext(x + 4, y + 4, string.format("%.1f u/s", gs))
+      dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
+    end
+
+  -- show compact zoom ratio (bottom-right), where "1:XX" = meters per grid cell
+  if F.show_zoom then
+    lcd.color(F.colors.text)
+    lcd.font(FONT_XS)
+
+    local ppm = F.ppm or 1
+    local step_px = F.grid_step or DEFAULT_GRID_STEP
+
+    -- meters represented by one grid cell (rounded nicely)
+    local meters_per_grid = step_px / ppm
+    local ratio = math.floor(meters_per_grid + 0.5)
+
+    -- keep it short; if you want the unit, change to string.format("Zoom: 1:%dm", ratio)
+    local zoom_txt = string.format("Zoom: 1:%d", ratio)
+
+    local text_w, text_h = lcd.getTextSize(zoom_txt)  -- font already set
+    local margin = 4
+    local tx = F.box.x + F.box.w - text_w - margin
+    local ty = F.box.y + F.box.h - text_h - 2
+    if tx < F.box.x + 2 then tx = F.box.x + 2 end  -- safety clamp
+
+    dtext(tx, ty, zoom_txt)
   end
 
-  -- readouts
-  if F.show_distance then
-    lcd.color(F.colors.text); lcd.font(FONT_XS)
-    local gs = tonumber(F.readout.gs) or 0
-    local dist_ft = (tonumber(F.readout.dist) or 0) * 3.28084
-    local brg = tonumber(F.readout.brg) or 0
-    local dist_ft_0 = math.floor(dist_ft + 0.5)
-    local brg_0 = (math.floor(brg + 0.5)) % 360
 
-    dtext(x + 4, y + 4, string.format("%.1f u/s", gs))
-    dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
-  end
     -- heading tape on sides (W/E markers like your screenshot)
     dtext(x + 2,  y + h/2 - 6, "W")
     dtext(x + w - 10, y + h/2 - 6, "E")

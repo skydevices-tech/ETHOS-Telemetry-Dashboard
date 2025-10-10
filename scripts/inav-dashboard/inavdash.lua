@@ -425,6 +425,7 @@ function inavdash.wakeup()
             home_icon = "gfx/home.png",
             own_icon  = "gfx/arrow.png",
             show_speed_vec = false,
+            show_zoom = true,
             colors = {
                 bg    = lcd.RGB(0, 60, 0),
                 grid  = lcd.RGB(0, 90, 0),
