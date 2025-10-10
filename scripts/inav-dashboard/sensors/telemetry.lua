@@ -142,6 +142,23 @@ local sensorTable = {
         end        
     },    
 
+    vertical_speed = {
+        name = "Climb Rate",
+        sensors = {
+            sport = { 
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0110 },
+
+            },
+            crsf  = { "VSpeed"},
+        },
+        transform = function(value)
+            if value then
+                return round(value, 2) 
+            end
+            return value
+        end        
+    },  
+
     consumption = {
         name = "Consumption",
         unit_string = "mAh",

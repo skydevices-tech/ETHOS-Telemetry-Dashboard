@@ -21,7 +21,7 @@ local gps_lock_prev = false
 -- This is a simply html-style grid system
 -- You can adjust the number of columns/rows/padding to taste
 local GRID = {
-  cols   = 30,   -- change to taste
+  cols   = 32,   -- change to taste
   rows   = 16,
   pad    = 2,   -- pixel gap between cells
   header = 0,   -- reserve a fixed px header if you ever need a title bar
@@ -31,6 +31,24 @@ local GRID = {
 local GRID_WIDGETS = nil
 
 local GRID_PAGES = {
+    [1] = {
+        ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
+        flightmode    =  { col = 17,  row = 13, colspan = 8, rowspan = 4 },
+        map           =  nil,
+        altitude      =  { col = 25, row = 1, colspan = 4,  rowspan = 4 },
+        groundspeed   =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },  
+        heading       =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
+        satellites    =  { col = 25, row = 9, colspan = 4,  rowspan = 4 },
+        gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
+        gps_lock      =  { col = 29,  row = 9, colspan = 4,  rowspan = 4 },
+        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
+        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        rssi          =  { col = 13, row = 13, colspan = 4,  rowspan = 4 },
+        home_dir      =  { col = 17, row = 0, colspan = 8,  rowspan = 12 },   
+        vspeed        =  { col = 29, row = 1, colspan = 4,  rowspan = 4 },
+    },
+    --[[    
     [1] = {
         ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
         flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
@@ -46,16 +64,16 @@ local GRID_PAGES = {
         fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
         rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
         home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
-    },
+    },]]
     [2] = {
         ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
         flightmode    =  nil,
-        map           =  { col = 17,  row = 1, colspan = 14, rowspan = 12 },
+        map           =  { col = 17,  row = 1, colspan = 16, rowspan = 12 },
         altitude      =  { col = 13,  row = 13, colspan = 4,  rowspan = 4 },
         groundspeed   =  { col = 17,  row = 13, colspan = 4,  rowspan = 4 },
         heading       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
         satellites    =  nil,
-        gps           =  { col = 25,  row = 13, colspan = 6,  rowspan = 4 },
+        gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
         gps_lock      =  nil,
         voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
         current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 }, 
@@ -184,6 +202,19 @@ function inavdash.paint()
             inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, units['altitude'], opts)
         end
 
+        -- Vertical Speed
+        if inavdash.layout.vspeed then        
+            local opts = {
+                colorbg = lcd.RGB(40,40,40),
+                colorvalue = lcd.RGB(255,255,255),
+                colorlabel = lcd.RGB(200,200,200),
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+            inavdash.render.telemetry.paint(inavdash.layout.vspeed.x, inavdash.layout.vspeed.y, inavdash.layout.vspeed.w, inavdash.layout.vspeed.h, "Climb Rate", sensors['vertical_speed'] or 0, units['vertical_speed'], opts)
+        end
+
         -- Ground Speed
          if inavdash.layout.groundspeed then       
             local opts = {
@@ -208,7 +239,7 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading']) or 0, units['heading'], opts)
+            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading'] or 0), units['heading'], opts)
         end
 
         -- Voltage
@@ -339,6 +370,7 @@ function inavdash.wakeup()
         sensors['gps_latitude'],  units['gps_latitude']      = inavdash.sensors.telemetry.getSensor('gps_latitude')
         sensors['gps_longitude'], units['gps_longitude']     = inavdash.sensors.telemetry.getSensor('gps_longitude')
         sensors['flightmode'],    units['flightmode']         = inavdash.sensors.telemetry.getSensor('flightmode')
+        sensors['vertical_speed'], units['vertical_speed']     = inavdash.sensors.telemetry.getSensor('vertical_speed')
 
         if sensors['gps_lock'] == false then
             sensors['groundspeed'] =  0
@@ -419,7 +451,7 @@ function inavdash.wakeup()
         local opts = {
             north_up = true,
             show_grid = true,
-            show_distance = false, 
+            show_distance = true, 
             home_icon = "gfx/home.png",
             own_icon  = "gfx/arrow.png",
             show_speed_vec = false,
