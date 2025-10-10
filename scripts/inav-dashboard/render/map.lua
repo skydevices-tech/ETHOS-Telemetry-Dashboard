@@ -27,8 +27,8 @@ end
 
 local function _bmp_size(bmp)
   if not bmp then return 0, 0 end
-  local w = (bmp.width and bmp:width()) or (bmp.getWidth and bmp:getWidth()) or bmp.w or 0
-  local h = (bmp.height and bmp:height()) or (bmp.getHeight and bmp:getHeight()) or bmp.h or 0
+  local w = (bmp.width and bmp:width()) or 0  
+  local h = (bmp.height and bmp:height()) or 0
   return tonumber(w) or 0, tonumber(h) or 0
 end
 
@@ -54,354 +54,201 @@ local function _dispose_rotated()
   rc.angle = nil
 end
 
-
--- --- bitmap helpers ---
-local function _resolve_bitmap(bmp_or_path)
-  if type(bmp_or_path) == "string" then
-    local ok, handle = pcall(lcd.loadBitmap, bmp_or_path)
-    return ok and handle or nil
-  end
-  return bmp_or_path
-end
-
-local function _bmp_size(bmp)
-  if not bmp then return 0, 0 end
-  -- Ethos bitmaps generally expose width/height as methods
-  local w = (bmp.width and bmp:width()) or (bmp.getWidth and bmp:getWidth()) or bmp.w or 0
-  local h = (bmp.height and bmp:height()) or (bmp.getHeight and bmp:getHeight()) or bmp.h or 0
-  return tonumber(w) or 0, tonumber(h) or 0
-end
-
 local function meters_per_deg(lat_deg)
   local lat = math.rad(lat_deg or 0)
   return 111320.0, 111320.0 * math.cos(lat)
 end
 
-local function enu_dxdy(lat, lon, lat0, lon0)
-  if not lat or not lon or not lat0 or not lon0 then return 1e9, 1e9 end
-  local mlat, mlon = meters_per_deg(lat0)
-  return (lon - lon0) * mlon, (lat - lat0) * mlat
+local function enu_from_latlon(lat, lon, lat0, lon0)
+  local mlat, mlon = meters_per_deg(lat0 or 0)
+  return (lon - (lon0 or 0)) * mlon, (lat - (lat0 or 0)) * mlat
 end
 
-local function hypot(x, y) return math.sqrt((x or 0)^2 + (y or 0)^2) end
-
--- ===== helpers (wakeup only) =====
-local function sval(s, k, d)
-  if type(s) ~= "table" then return d end
-  local v = s[k]
-  if type(v) == "table" then v = v.value or v.val or v.v or v[1] end
-  v = tonumber(v)
-  return v ~= nil and v or d
-end
-
--- cross-version atan2
 local function atan2(y, x)
-  if math.atan2 then return math.atan2(y, x) end     -- Lua 5.1 style
-  if x ~= nil then return math.atan(y, x) end        -- Lua 5.3 style
-  return math.atan(y)                                -- last resort
+  if math.atan2 then return math.atan2(y, x) end
+  if x ~= nil then return math.atan(y, x) end
+  return math.atan(y)
 end
-
-local function clamp(v,a,b) if v<a then return a elseif v>b then return b else return v end end
 
 local function rotate(px, py, s, c)
   return px * c - py * s, px * s + py * c
 end
 
-local function meters_per_deg(lat_deg)
-  -- good enough for sub-km maps
-  local lat = math.rad(lat_deg or 0)
-  local m_per_deg_lat = 111320.0
-  local m_per_deg_lon = 111320.0 * math.cos(lat)
-  return m_per_deg_lat, m_per_deg_lon
-end
-
-local function enu_from_latlon(lat, lon, lat0, lon0)
-  local mlat, mlon = meters_per_deg(lat0 or 0)
-  return (lon - (lon0 or 0)) * mlon, (lat - (lat0 or 0)) * mlat   -- x East, y North
-end
-
--- ===== integer/finite-safe drawing wrappers (Ethos likes ints) =====
-local function i(v)  -- round to nearest int
-  return math.floor((tonumber(v) or 0) + 0.5)
-end
-local function finite(v)
-  v = tonumber(v) or 0
-  return v == v and v ~= 1/0 and v ~= -1/0 -- not NaN/Inf
-end
-
-local function dline(x1,y1,x2,y2)
-  lcd.drawLine(i(x1), i(y1), i(x2), i(y2))
-end
-local function drect(x,y,w,h)
-  lcd.drawRectangle(i(x), i(y), i(w), i(h))
-end
-local function dfrect(x,y,w,h)
-  lcd.drawFilledRectangle(i(x), i(y), i(w), i(h))
-end
-local function dtri(x1,y1,x2,y2,x3,y3,filled)
-  x1,y1,x2,y2,x3,y3 = i(x1),i(y1),i(x2),i(y2),i(x3),i(y3)
-  if filled and lcd.drawFilledTriangle then
-    lcd.drawFilledTriangle(x1,y1,x2,y2,x3,y3)
-  else
-    if lcd.drawTriangle then lcd.drawTriangle(x1,y1,x2,y2,x3,y3) else
-      lcd.drawLine(x1,y1,x2,y2); lcd.drawLine(x2,y2,x3,y3); lcd.drawLine(x3,y3,x1,y1)
-    end
-  end
-end
-local function dtext(x,y,txt)
-  lcd.drawText(i(x), i(y), tostring(txt or ""))
-end
+local function clamp(v,a,b) if v<a then return a elseif v>b then return b else return v end end
+local function finite(v) v = tonumber(v) or 0 return v == v and v ~= 1/0 and v ~= -1/0 end
+local function i(v) return math.floor((tonumber(v) or 0) + 0.5) end
 
 -- ===== public API =====
-
--- sensors expected (names are flexible): latitude, longitude, home_lat, home_lon,
--- heading (deg), course (deg) optional, groundspeed (m/s or your units)
--- Options:
---   colors = {bg, grid, own, home, text}
---   north_up = false (heading-up by default)
---   min_ppm, max_ppm (pixels per meter) bounds for auto-zoom
---   keep_home_margin = 18 (px)
---   show_grid = true
---   light_on_gps_ms = 2000  (optional reduced drawing when GPS first appears)
 function RenderMap.wakeup(x, y, w, h, sensors, units, opts)
   opts = opts or {}
+  local lat  = (sensors.latitude or 0)
+  local lon  = (sensors.longitude or 0)
+  local hlat = (sensors.home_lat or 0)
+  local hlon = (sensors.home_lon or 0)
 
-  local lat  = sval(sensors, "latitude",  0)
-  local lon  = sval(sensors, "longitude", 0)
-  local hlat = sval(sensors, "home_lat",  0)
-  local hlon = sval(sensors, "home_lon",  0)
+  local heading   = (sensors.heading or 0) % 360
+  local course    = (sensors.course or heading) % 360
+  local gs        = sensors.groundspeed or 0
 
-  -- fall back: if no explicit home in sensors, allow opts.home.{lat,lon}
-  if (hlat == 0 and hlon == 0) and opts.home then
-    hlat, hlon = opts.home.lat or 0, opts.home.lon or 0
-  end
+  local xE, yN = enu_from_latlon(lat, lon, hlat, hlon)
+  local homeE, homeN = -xE, -yN
 
-  local heading   = (sval(sensors, "heading",   0)) % 360
-  local course    = (sval(sensors, "course",    heading)) % 360
-  local gs        = sval(sensors, "groundspeed", 0)
-
-  -- ENU in meters
-  local xE, yN = enu_from_latlon(lat, lon, hlat, hlon)        -- craft relative to home (home at 0,0)
-  local homeE, homeN = -xE, -yN                               -- home from craft
-
-  -- Auto-zoom: keep both craft (center) and home visible with margin
   local margin   = opts.keep_home_margin or 18
   local maxR     = math.max(math.abs(homeE), math.abs(homeN), 1)
-  local span_m   = 2.4 * maxR     -- little extra so it breathes
-  local ppm_min  = opts.min_ppm or 0.2   -- 5 m/pixel max span ≈ 500 m across @ 100 px
-  local ppm_max  = opts.max_ppm or 3.0   -- ~0.33 m/pixel
+  local span_m   = 2.4 * maxR
+  local ppm_min  = opts.min_ppm or 0.2
+  local ppm_max  = opts.max_ppm or 3.0
   local ppm_auto = math.min((w - 2*margin)/span_m, (h - 2*margin)/span_m)
   local ppm      = opts.ppm or clamp(ppm_auto, ppm_min, ppm_max)
   if not finite(ppm) or ppm <= 0 then ppm = 1 end
 
-  -- ensure home stays inside the view circle no matter what
-  local dist_m = math.sqrt(homeE*homeE + homeN*homeN)
-  local r_px   = math.min(w, h)/2 - margin
-  if r_px > 0 and dist_m > 0 then
-    local ppm_req = r_px / dist_m               -- max pixels per meter to keep home in
-    ppm = math.min(ppm, ppm_req)                -- tighten zoom if needed
-    ppm = clamp(ppm, 0.0001, ppm_max)           -- keep sane bounds
-  end
-
-  -- Map rotation: heading-up (default) or North-up
   local map_up_deg = (opts.north_up and 0 or heading)
   local r = math.rad(map_up_deg)
   local s, c = math.sin(r), math.cos(r)
 
-  -- home screen position (relative to box origin)
   local hx, hy = rotate(homeE, homeN, s, c)
   hx, hy = w/2 + hx * ppm, h/2 - hy * ppm
 
-  -- ownship triangle (pointing along rotation-up)
+  -- ownship triangle (pointing along COURSE, not map)
   local own_len, own_w = 10, 6
   local p1x, p1y = 0, -own_len
   local p2x, p2y = own_w/2, own_len*0.6
   local p3x, p3y = -own_w/2, own_len*0.6
-  p1x, p1y = rotate(p1x, p1y, s, c)
-  p2x, p2y = rotate(p2x, p2y, s, c)
-  p3x, p3y = rotate(p3x, p3y, s, c)
+
+  local r2 = math.rad(course or 0)
+  local s2, c2 = math.sin(r2), math.cos(r2)
+  p1x, p1y = rotate(p1x, p1y, s2, c2)
+  p2x, p2y = rotate(p2x, p2y, s2, c2)
+  p3x, p3y = rotate(p3x, p3y, s2, c2)
+
   local cx, cy = x + w/2, y + h/2
   local own_tri = { cx + p1x, cy + p1y,  cx + p2x, cy + p2y,  cx + p3x, cy + p3y }
 
-  -- bearing + distance to home
   local dist_m = math.sqrt(homeE*homeE + homeN*homeN)
   local brg = (math.deg(atan2(homeE, homeN)) + 360) % 360
 
-  -- speed vector (projected along course)
-  -- units (from telemetry table if provided)
-  local speed_unit = (units and (units.groundspeed or units.speed)) or "kt"
-  local dist_unit  = (units and (units.distance or units.altitude)) or "m"
-
   local vx, vy = nil, nil
   if gs and gs > 0 then
-    local cr = math.rad(opts.north_up and course - map_up_deg or 0)  -- heading-up already aligned
+    local cr = math.rad(course)
     local sc, cc = math.sin(cr), math.cos(cr)
     vx, vy = sc * gs, -cc * gs
     vx, vy = cx + vx * ppm * 0.8, cy + vy * ppm * 0.8
   end
 
-  -- Colors
   local colors = opts.colors or {}
-  local col_bg     = colors.bg     or lcd.RGB(0, 60, 0)
-  local col_grid   = colors.grid   or lcd.RGB(0, 90, 0)
-  local col_own    = colors.own    or lcd.RGB(255, 255, 255)
-  local col_home   = colors.home   or lcd.RGB(255, 255, 255)
-  local col_text   = colors.text   or lcd.RGB(255, 255, 255)
+  local col_bg   = colors.bg   or lcd.RGB(0,60,0)
+  local col_grid = colors.grid or lcd.RGB(0,90,0)
+  local col_own  = colors.own  or lcd.RGB(255,255,255)
+  local col_home = colors.home or lcd.RGB(255,255,255)
+  local col_text = colors.text or lcd.RGB(255,255,255)
 
-  -- Optional light mode for first GPS appearance
   if not RenderMap._light_until and (lat ~= 0 or lon ~= 0) and (lcd.getTime and opts.light_on_gps_ms) then
     RenderMap._light_until = lcd.getTime() + (opts.light_on_gps_ms or 2000)
   end
 
- -- capture/resolve icons (load once; no per-frame loads)
-  local o = opts or {}
-  _set_icon("home", o.home_icon)
-  _set_icon("own",  o.own_icon)
+  _set_icon("home", opts.home_icon)
+  _set_icon("own",  opts.own_icon)
 
-  -- Primitive frame
   RenderMap._frame = {
-    box     = {x=x, y=y, w=w, h=h},
-    ppm     = ppm,
-    mapRot  = map_up_deg,
-    colors  = {bg=col_bg, grid=col_grid, own=col_own, home=col_home, text=col_text},
-    own_tri = own_tri,
-    show_distance = (o.show_distance ~= false),
-    show_zoom = (o.show_zoom == true),
-    home_xy = { x = x + hx, y = y + hy },
-    spd_vec = (vx and vy) and { cx, cy, vx, vy } or nil,
-    readout = { gs = gs, dist = dist_m, brg = brg, speed_unit = speed_unit, dist_unit = dist_unit },
-    show_grid = (o.show_grid ~= false),
-    grid_step = (opts.grid_step or DEFAULT_GRID_STEP),
-    north_up  = (o.north_up == true),
-    opts      = { angle_step = o.angle_step or 10 }, -- quantize rotation to reduce churn
+    box={x=x,y=y,w=w,h=h}, ppm=ppm, mapRot=map_up_deg,
+    colors={bg=col_bg,grid=col_grid,own=col_own,home=col_home,text=col_text},
+    own_tri=own_tri,
+    home_xy={x=x+hx,y=y+hy},
+    spd_vec=(vx and vy) and {cx,cy,vx,vy} or nil,
+    readout={gs=gs,dist=dist_m,brg=brg,speed_unit="kt",dist_unit="m",course=course},
+    show_distance=(opts.show_distance~=false),
+    show_zoom=(opts.show_zoom==true),
+    show_grid=(opts.show_grid~=false),
+    grid_step=(opts.grid_step or DEFAULT_GRID_STEP),
+    north_up=(opts.north_up==true),
+    opts={angle_step=opts.angle_step or 5},
   }
 end
 
-
--- Pure renderer
 function RenderMap.paint()
   local F = RenderMap._frame
   if not F then return end
-  local x, y, w, h = F.box.x, F.box.y, F.box.w, F.box.h
+  local x,y,w,h = F.box.x,F.box.y,F.box.w,F.box.h
+  lcd.setClipping(i(x),i(y),i(w),i(h))
 
-  -- clip
-  lcd.setClipping(i(x), i(y), i(w), i(h))
+  lcd.color(F.colors.bg); lcd.drawFilledRectangle(i(x),i(y),i(w),i(h))
 
-  -- background
-  lcd.color(F.colors.bg); dfrect(x, y, w, h)
-
-  -- light mode check (reduces draw load briefly after GPS shows up)
-  local light = false
-  if RenderMap._light_until and lcd.getTime then
-    light = lcd.getTime() < RenderMap._light_until
-    if not light then RenderMap._light_until = nil end
-  end
-
-  -- optional grid
-  if F.show_grid and not light then
+  if F.show_grid then
     lcd.color(F.colors.grid)
     local step = F.grid_step or DEFAULT_GRID_STEP
-    for gx = x, x+w, step do dline(gx, y, gx, y+h) end
-    for gy = y, y+h, step do dline(x, gy, x+w, gy) end
+    for gx = x, x+w, step do lcd.drawLine(i(gx),i(y),i(gx),i(y+h)) end
+    for gy = y, y+h, step do lcd.drawLine(i(x),i(gy),i(x+w),i(gy)) end
   end
 
-  -- home icon (bitmap if provided, else fallback)
-  do
-    local hx, hy = F.home_xy.x, F.home_xy.y
-    local hbmp = RenderMap._icons.home
-    if hbmp then
-      lcd.drawBitmap(i(hx - 8), i(hy - 8), hbmp)
-    else
-      lcd.color(F.colors.home)
-      local s = 6
-      dtri(hx - s, hy - s, hx, hy - 2*s, hx + s, hy - s, true)
-      dfrect(hx - 0.7*s, hy - s, 1.4*s, 1.7*s)
-    end
+  -- draw home
+  local hx,hy = F.home_xy.x,F.home_xy.y
+  local hbmp = RenderMap._icons.home
+  if hbmp then lcd.drawBitmap(i(hx-8),i(hy-8),hbmp) else
+    lcd.color(F.colors.home)
+    local s=6
+    lcd.drawFilledTriangle(i(hx-s),i(hy-s),i(hx),i(hy-2*s),i(hx+s),i(hy-s))
+    lcd.drawFilledRectangle(i(hx-0.7*s),i(hy-s),i(1.4*s),i(1.7*s))
   end
 
-  -- ownship (bitmap if provided, rotated-cached; else triangle)
-  do
-    local obmp = RenderMap._icons.own
-    if obmp and obmp.rotate then
-      local cx, cy = F.box.x + F.box.w/2, F.box.y + F.box.h/2
-      local step = (F.opts and F.opts.angle_step) or 10
-      local ang  = (F.mapRot or 0) % 360
-      local bucket = step > 0 and (math.floor((ang + step/2)/step) * step) or ang
-
-      local rc = RenderMap._rot_cache
-      if rc.angle ~= bucket or not rc.bmp then
-        -- replace cached rotation
-        _dispose_rotated()
-        rc.bmp = obmp:rotate(bucket)
-        rc.angle = bucket
-      end
-
-      local rw, rh = _bmp_size(rc.bmp)
-      lcd.drawBitmap(i(cx - rw/2), i(cy - rh/2), rc.bmp)
-    else
-      -- fallback triangle
-      lcd.color(F.colors.own)
-      local t = F.own_tri
-      dtri(t[1],t[2], t[3],t[4], t[5],t[6], true)
+  -- draw ownship bitmap rotated by course
+  local obmp = RenderMap._icons.own
+  if obmp and obmp.rotate then
+    local cx,cy = x+w/2,y+h/2
+    local step = (F.opts and F.opts.angle_step) or 10
+    --local ang = ((F.readout and F.readout.course) or 0) % 360   -- need to check if invert logic applies for elrs?
+    local ang = (((F.readout and F.readout.course) or 0) + 180) % 360
+    local bucket = step>0 and (math.floor((ang+step/2)/step)*step) or ang
+    local rc = RenderMap._rot_cache
+    if rc.angle~=bucket or not rc.bmp then
+      _dispose_rotated()
+      rc.bmp = obmp:rotate(bucket)
+      rc.angle = bucket
     end
+    local rw,rh = _bmp_size(rc.bmp)
+    lcd.drawBitmap(i(cx-rw/2),i(cy-rh/2),rc.bmp)
+  else
+    lcd.color(F.colors.own)
+    local t=F.own_tri
+    lcd.drawFilledTriangle(i(t[1]),i(t[2]),i(t[3]),i(t[4]),i(t[5]),i(t[6]))
   end
 
-    -- speed vector
-    if F.spd_vec then
-      dline(F.spd_vec[1], F.spd_vec[2], F.spd_vec[3], F.spd_vec[4])
-    end
+  if F.spd_vec then
+    lcd.drawLine(i(F.spd_vec[1]),i(F.spd_vec[2]),i(F.spd_vec[3]),i(F.spd_vec[4]))
+  end
 
-    -- readouts
-    if F.show_distance then
-      lcd.color(F.colors.text); lcd.font(FONT_XS)
-      local gs = tonumber(F.readout.gs) or 0
-      local dist_ft = (tonumber(F.readout.dist) or 0) * 3.28084
-      local brg = tonumber(F.readout.brg) or 0
-      local dist_ft_0 = math.floor(dist_ft + 0.5)
-      local brg_0 = (math.floor(brg + 0.5)) % 360
+  if F.show_distance then
+    lcd.color(F.colors.text); lcd.font(FONT_XS)
+    local gs = tonumber(F.readout.gs) or 0
+    local dist_ft = (tonumber(F.readout.dist) or 0)*3.28084
+    local brg = tonumber(F.readout.brg) or 0
+    lcd.drawText(i(x+4),i(y+4),string.format("%.1f kt",gs))
+    lcd.drawText(i(x+4),i(y+h-12),string.format("%dft  %03d°",math.floor(dist_ft+0.5),(math.floor(brg+0.5))%360))
+  end
 
-      dtext(x + 4, y + 4, string.format("%.1f %s", gs, F.readout.speed_unit or ""))
-      dtext(x + 4, y + h - 12, string.format("%dft  %03d°", dist_ft_0, brg_0))
-    end
-
-  -- show compact zoom ratio (bottom-right), where "1:XX" = meters per grid cell
   if F.show_zoom then
-    lcd.color(F.colors.text)
-    lcd.font(FONT_XS)
-
+    lcd.color(F.colors.text); lcd.font(FONT_XS)
     local ppm = F.ppm or 1
     local step_px = F.grid_step or DEFAULT_GRID_STEP
-
-    -- meters represented by one grid cell (rounded nicely)
     local meters_per_grid = step_px / ppm
     local ratio = math.floor(meters_per_grid + 0.5)
-
-    -- keep it short; if you want the unit, change to string.format("Zoom: 1:%dm", ratio)
     local zoom_txt = string.format("Zoom: 1:%d", ratio)
-
-    local text_w, text_h = lcd.getTextSize(zoom_txt)  -- font already set
-    local margin = 4
-    local tx = F.box.x + F.box.w - text_w - margin
-    local ty = F.box.y + F.box.h - text_h - 2
-    if tx < F.box.x + 2 then tx = F.box.x + 2 end  -- safety clamp
-
-    dtext(tx, ty, zoom_txt)
+    local text_w,text_h = lcd.getTextSize(zoom_txt)
+    lcd.drawText(i(x+w-text_w-4),i(y+h-text_h-2),zoom_txt)
   end
 
+  lcd.drawText(i(x+2),i(y+h/2-6),"W")
+  lcd.drawText(i(x+w-10),i(y+h/2-6),"E")
 
-    -- heading tape on sides (W/E markers like your screenshot)
-    dtext(x + 2,  y + h/2 - 6, "W")
-    dtext(x + w - 10, y + h/2 - 6, "E")
-
-  -- reset clip
-  local W,H = lcd.getWindowSize()
-  lcd.setClipping(0,0,W,H)
+  local W,H = lcd.getWindowSize(); lcd.setClipping(0,0,W,H)
 end
 
+RenderMap.enu_dxdy = function(lat, lon, lat0, lon0)
+  local dx, dy = enu_from_latlon(lat, lon, lat0, lon0)
+  return dx, dy
+end
 
-
-RenderMap.hypot = hypot
-RenderMap.enu_dxdy = enu_dxdy
-RenderMap.meters_per_deg = meters_per_deg
+RenderMap.hypot = function(x, y)
+  return math.sqrt((x or 0)^2 + (y or 0)^2)
+end
 
 return RenderMap

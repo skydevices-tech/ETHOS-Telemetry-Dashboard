@@ -159,8 +159,7 @@ local sensorTable = {
         name = "Yaw",
         sensors = {
             sport = { 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x5210 }, 
-                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0830 },
+                { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0840 },  
             },
             crsf = { "GPS Heading" },
         },
