@@ -17,6 +17,24 @@ local currentPage = currentPage or 1
 local gps_lock_prev = false
 
 
+local colorTable = {
+    ['darkmode'] = {
+        backdrop = lcd.RGB(0,0,0),
+        background = lcd.RGB(40,40,40),
+        foreground = lcd.RGB(255,255,255),
+        label = lcd.RGB(200,200,200),
+        hd = "gfx/hd_white.png"
+    },
+    ['lightmode'] = {
+        backdrop = lcd.RGB(255,255,255),
+        background = lcd.RGB(208,208,208),
+        foreground = lcd.RGB(40,40,40),
+        label = lcd.RGB(50,50,50),
+        hd = "gfx/hd_black.png"
+    }
+}
+local colors
+
 -- Define your grid once
 -- This is a simply html-style grid system
 -- You can adjust the number of columns/rows/padding to taste
@@ -160,8 +178,9 @@ function inavdash.paint()
 
     local LCD_WIDTH, LCD_HEIGHT = lcd.getWindowSize()
 
+
     -- Clear background
-    lcd.color(lcd.RGB(0,0,0))
+    lcd.color(colors.backdrop)
     lcd.drawFilledRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT)
     
     -- Artificial Horizon
@@ -179,9 +198,9 @@ function inavdash.paint()
         -- Flight Mode
         if inavdash.layout.flightmode then        
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -192,9 +211,9 @@ function inavdash.paint()
         -- Altitude
         if inavdash.layout.altitude then        
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -205,9 +224,9 @@ function inavdash.paint()
         -- Vertical Speed
         if inavdash.layout.vspeed then        
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -218,9 +237,9 @@ function inavdash.paint()
         -- Ground Speed
          if inavdash.layout.groundspeed then       
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -232,9 +251,9 @@ function inavdash.paint()
         -- Distance
         if inavdash.layout.heading then
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -245,9 +264,9 @@ function inavdash.paint()
         -- Voltage
         if inavdash.layout.voltage then 
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -259,9 +278,9 @@ function inavdash.paint()
         -- Fuel
         if inavdash.layout.fuel then
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -273,9 +292,9 @@ function inavdash.paint()
         -- Current
         if inavdash.layout.current then
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -287,9 +306,9 @@ function inavdash.paint()
         -- RSSI
         if inavdash.layout.rssi then
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -301,9 +320,9 @@ function inavdash.paint()
         -- Satellites
         if inavdash.layout.satellites then
             local opts = {
-                colorbg = lcd.RGB(40,40,40),
-                colorvalue = lcd.RGB(255,255,255),
-                colorlabel = lcd.RGB(200,200,200),
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
@@ -318,9 +337,9 @@ function inavdash.paint()
     -- GPS
     if inavdash.layout.gps then
         local opts = {
-            colorbg = lcd.RGB(40,40,40),
-            colorvalue = lcd.RGB(255,255,255),
-            colorlabel = lcd.RGB(200,200,200),
+            colorbg = colors.background,
+            colorvalue = colors.foreground,
+            colorlabel = colors.label,
             fontvalue = FONT_S,
             fontlabel = FONT_XS,
         }
@@ -335,7 +354,7 @@ function inavdash.paint()
                 orange = "gfx/orange.png",
                 green = "gfx/green.png",
             },
-            colorbg = lcd.RGB(40,40,40),
+            colorbg = colors.background,
         }
         inavdash.render.gps_lock.paint(inavdash.layout.gps_lock.x, inavdash.layout.gps_lock.y, inavdash.layout.gps_lock.w, inavdash.layout.gps_lock.h, sensors['gps_lock'], sensors['satellites'], opts)
     end
@@ -347,6 +366,12 @@ function inavdash.wakeup()
     if GRID_WIDGETS == nil then
         -- First time only: pick a page layout
         GRID_WIDGETS = GRID_PAGES[currentPage] or GRID_PAGES[1]
+    end
+
+    if lcd.darkMode() then
+        colors = colorTable['darkmode']
+    else
+        colors = colorTable['lightmode']
     end
 
 
@@ -499,10 +524,14 @@ function inavdash.wakeup()
             home_lon  = sensors['home_longitude'],
         }
         local opts = {
-            colors = { bg = lcd.RGB(40,40,40), frame = lcd.RGB(80,80,80), text = lcd.RGB(255,255,255) },
+            colors = { 
+                bg = colors.background,
+                frame = colors.foreground, 
+                text = colors.foreground, 
+            },
             show_ring = true,
             show_text = true,
-            image = "gfx/hd.png",     -- single image
+            image = colors.hd,        -- single image
             angle_step = 5,           -- 5° buckets
             flip_180 = false,         -- set true if your hd.png points DOWN by default
         }
