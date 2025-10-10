@@ -521,28 +521,37 @@ function inavdash.write()
 end
 
 function inavdash.event(widget, category, value, x, y)
-    if lcd.hasFocus() then
-        print("Event received:", category, value, x, y)
-        local num_pages = #GRID_PAGES
 
-        if category == 0 and value == 4100 then -- scroll right
+    if lcd.hasFocus() == false then
+        return false
+    end
+
+    local num_pages = #GRID_PAGES
+    currentPage = currentPage or 1
+    local prevPage = currentPage
+
+
+    if value == 4100 then -- scroll right
+        if currentPage < num_pages then
             currentPage = currentPage + 1
-            if currentPage > num_pages then
-                currentPage = 1 -- wrap around to first page
-            end
-        elseif category == 0 and value == 4099 then -- scroll left
-            currentPage = currentPage - 1
-            if currentPage < 1 then
-                currentPage = num_pages -- wrap around to last page
-            end
         end
 
-        -- Update the widgets to the current page
-        GRID_WIDGETS = GRID_PAGES[currentPage]
-
-        print("Current page:", currentPage)
+    elseif value == 4099 then -- scroll left
+        if currentPage > 1 then
+            currentPage = currentPage - 1
+        end
     end
+
+
+    -- Update the widgets to the current page (only if page actually changed)
+    if currentPage ~= prevPage then
+        GRID_WIDGETS = GRID_PAGES[currentPage]
+        return true
+    end
+
+
 end
+
 
 
 
