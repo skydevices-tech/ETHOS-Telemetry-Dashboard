@@ -486,6 +486,15 @@ function inavdash.wakeup()
     do
         local fm = sensors['flightmode']
         local prev = inavdash._prev_flightmode
+
+        -- Reset home if we enter a no-GPS mode
+        if fm == 0 and prev ~= 0 then
+            sensors['home_latitude']  = 0
+            sensors['home_longitude'] = 0
+            sensors['gps_distancehome'] = 0
+        end
+
+
         -- Only trigger if we have a valid mode now, and either it's the first one
         -- (prev == nil) or it has changed since last time.
         if fm and (prev == nil or fm ~= prev) then
