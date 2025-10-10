@@ -23,7 +23,7 @@ local function clamp(v,a,b) if v<a then return a elseif v>b then return b else r
 local function col(opts, k, fallback) local colors=opts.colors or {}; return colors[k] or fallback end
 
 -- Build frame of precomputed primitives for paint()
-local function build_frame(sensors, x, y, w, h, opts)
+local function build_frame(sensors, units, x, y, w, h, opts)
     opts = opts or {}
     local ppd  = tonumber(opts.ppd) or 2.0
 
@@ -155,6 +155,9 @@ local function build_frame(sensors, x, y, w, h, opts)
 
     -- side bars
     local bars = { alt=nil, gs=nil }
+    -- pick unit labels from provided `units` table (fallbacks if missing)
+    local alt_unit = (units and units["altitude"]) or "m"
+    local gs_unit  = (units and units["groundspeed"]) or "kt"
     if show_altitude then
         local barX, barY = x + w - 10, y + 5
         local barH       = h - 10
@@ -162,7 +165,7 @@ local function build_frame(sensors, x, y, w, h, opts)
         bars.alt = {
             rect  = {barX, barY, 6, barH},
             fill  = {barX, barY + barH - fillH, 6, fillH},
-            text  = {x = barX - 4, y = barY + barH - fillH - 6, str = string.format("%d m", altitude), fl = RIGHT + FONT_XS}
+            text  = {x = barX - 4, y = barY + barH - fillH - 6, str = string.format("%d %s", altitude, alt_unit), fl = RIGHT + FONT_XS}
         }
     end
     if show_groundspeed then
@@ -172,7 +175,7 @@ local function build_frame(sensors, x, y, w, h, opts)
         bars.gs = {
             rect  = {barX, barY, 6, barH},
             fill  = {barX, barY + barH - fillH, 6, fillH},
-            text  = {x = barX + 10, y = barY + barH - fillH - 6, str = string.format("%d kt", groundspeed), fl = LEFT + FONT_XS}
+            text  = {x = barX + 10, y = barY + barH - fillH - 6, str = string.format("%d %s", groundspeed, gs_unit), fl = LEFT + FONT_XS}
         }
     end
 
@@ -195,8 +198,8 @@ end
 -- ===== public API =====
 
 -- All heavy work happens here. Call this from the scheduler.
-function RenderAH.wakeup(sensors, x, y, w, h, opts)
-    RenderAH._frame = build_frame(sensors, x, y, w, h, opts)
+function RenderAH.wakeup(sensors, units , x, y, w, h, opts)
+    RenderAH._frame = build_frame(sensors, units, x, y, w, h, opts)
 end
 
 -- Pure renderer: no params, no math, no table creation beyond locals.

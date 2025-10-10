@@ -8,6 +8,7 @@ inavdash.render =  {}
 
 
 local sensors = {}
+local units = {}
 local internalModule = nil
 local externalModule = nil
 local currentPage = currentPage or 1
@@ -65,8 +66,6 @@ local GRID_PAGES = {
     
 
 }
-
-
 
 -- Convert one grid definition to pixel rects (inspired by dashboard.lua)
 local function computeGridRects(sw, sh, grid, widgets)
@@ -182,7 +181,7 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, "", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, units['altitude'], opts)
         end
 
         -- Ground Speed
@@ -196,7 +195,7 @@ function inavdash.paint()
             }
         
 
-            inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, "", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, units['groundspeed'], opts)
         end
 
         -- Distance
@@ -209,7 +208,7 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, "", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", sensors['heading'] or 0, units['heading'], opts)
         end
 
         -- Voltage
@@ -223,7 +222,7 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, "V", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, units['voltage'], opts)
         end
 
         -- Fuel
@@ -237,7 +236,7 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, "%", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "%", opts)
         end
 
         -- Current
@@ -251,7 +250,7 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, "A", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, units['current'], opts)
         end
 
         -- RSSI
@@ -265,7 +264,7 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, "%", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, units['rssi'], opts)
         end
 
         -- Satellites
@@ -327,20 +326,19 @@ function inavdash.wakeup()
     if inavdash.sensors and inavdash.sensors.telemetry then
         inavdash.sensors.telemetry.wakeup()
 
-        sensors['voltage'] = inavdash.sensors.telemetry.getSensor('voltage')
-        sensors['current'] = inavdash.sensors.telemetry.getSensor('current')
-        sensors['altitude'] = inavdash.sensors.telemetry.getSensor('altitude')
-        sensors['fuel'] = inavdash.sensors.telemetry.getSensor('fuel')
-        sensors['rssi'] = inavdash.sensors.telemetry.getSensor('rssi')
-        sensors['roll'] = inavdash.sensors.telemetry.getSensor('roll')
-        sensors['pitch'] = inavdash.sensors.telemetry.getSensor('pitch')
-        sensors['heading'] = inavdash.sensors.telemetry.getSensor('heading')
-        sensors['groundspeed'] = inavdash.sensors.telemetry.getSensor('groundspeed')
-        sensors['satellites'] = inavdash.sensors.telemetry.getSensor('satellites')
-        sensors['gps_latitude'] = inavdash.sensors.telemetry.getSensor('gps_latitude')
-        sensors['gps_longitude'] = inavdash.sensors.telemetry.getSensor('gps_longitude')
-        sensors['flightmode'] = inavdash.sensors.telemetry.getSensor('flightmode')
-
+        sensors['voltage'],       units['voltage']          = inavdash.sensors.telemetry.getSensor('voltage')
+        sensors['current'],       units['current']           = inavdash.sensors.telemetry.getSensor('current')
+        sensors['altitude'],      units['altitude']          = inavdash.sensors.telemetry.getSensor('altitude')
+        sensors['fuel'],          units['fuel']              = inavdash.sensors.telemetry.getSensor('fuel')
+        sensors['rssi'],          units['rssi']              = inavdash.sensors.telemetry.getSensor('rssi')
+        sensors['roll'],          units['roll']              = inavdash.sensors.telemetry.getSensor('roll')
+        sensors['pitch'],         units['pitch']             = inavdash.sensors.telemetry.getSensor('pitch')
+        sensors['heading'],       units['heading']           = inavdash.sensors.telemetry.getSensor('heading')
+        sensors['groundspeed'],   units['groundspeed']       = inavdash.sensors.telemetry.getSensor('groundspeed')
+        sensors['satellites'],    units['satellites']        = inavdash.sensors.telemetry.getSensor('satellites')
+        sensors['gps_latitude'],  units['gps_latitude']      = inavdash.sensors.telemetry.getSensor('gps_latitude')
+        sensors['gps_longitude'], units['gps_longitude']     = inavdash.sensors.telemetry.getSensor('gps_longitude')
+        sensors['flightmode'],    units['flightmode']         = inavdash.sensors.telemetry.getSensor('flightmode')
 
         if sensors['gps_lock'] == false then
             sensors['groundspeed'] =  0
@@ -409,11 +407,11 @@ function inavdash.wakeup()
     if inavdash.render.ah then
         local ahconfig = {
             ppd = 2.0,
-            show_altitude = false,
-            show_groundspeed = false,
+            show_altitude = true,
+            show_groundspeed = true,
         }
         if inavdash.render.ah then
-            inavdash.render.ah.wakeup(sensors, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
+            inavdash.render.ah.wakeup(sensors, units, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
         end
     end
 
@@ -454,7 +452,7 @@ function inavdash.wakeup()
 
         local box = inavdash.layout.map
         if box then
-            inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s,opts)
+            inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s, units,opts)
         end
     end
 
@@ -479,7 +477,7 @@ function inavdash.wakeup()
             show_text = true,
         }
         if box then
-            inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, opts)
+            inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
         end
     end
 
