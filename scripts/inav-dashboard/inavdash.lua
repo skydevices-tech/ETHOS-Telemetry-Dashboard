@@ -90,7 +90,7 @@ local GRID_PAGES = {
         map           =  { col = 17,  row = 1, colspan = 16, rowspan = 12 },
         altitude      =  { col = 13,  row = 13, colspan = 4,  rowspan = 4 },
         groundspeed   =  { col = 17,  row = 13, colspan = 4,  rowspan = 4 },
-        heading       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
+        vspeed       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
         satellites    =  nil,
         gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
         gps_lock      =  nil,
