@@ -59,30 +59,14 @@ local GRID_PAGES = {
         satellites    =  { col = 25, row = 9, colspan = 4,  rowspan = 4 },
         gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
         gps_lock      =  { col = 29,  row = 9, colspan = 4,  rowspan = 4 },
-        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 }, 
         current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        --fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        consumption  =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
         rssi          =  { col = 13, row = 13, colspan = 4,  rowspan = 4 },
         home_dir      =  { col = 17, row = 0, colspan = 8,  rowspan = 12 },   
         vspeed        =  { col = 29, row = 1, colspan = 4,  rowspan = 4 },
     },
-    --[[    
-    [1] = {
-        ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
-        flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
-        map           =  { col = 13, row = 1, colspan = 14, rowspan = 8 },
-        altitude      =  { col = 23, row = 9, colspan = 4,  rowspan = 4 },
-        groundspeed   =  { col = 19, row = 9, colspan = 4,  rowspan = 4 },  
-        heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 4 },
-        satellites    =  { col = 27, row = 9, colspan = 4,  rowspan = 4 },
-        gps           =  { col = 19,  row = 13, colspan = 8,  rowspan = 4 },
-        gps_lock      =  { col = 27,  row = 13, colspan = 4,  rowspan = 4 },
-        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
-        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
-        rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
-        home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
-    },]]
     [2] = {
         ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
         flightmode    =  nil,
@@ -95,7 +79,8 @@ local GRID_PAGES = {
         gps_lock      =  nil,
         voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
         current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 }, 
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        --fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+        consumption  =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
         rssi          =  nil,
         home_dir      =  nil
     },
@@ -289,6 +274,20 @@ function inavdash.paint()
             inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "%", opts)
         end
 
+        -- Fuel
+        if inavdash.layout.consumption then
+            local opts = {
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+            }
+
+
+            inavdash.render.telemetry.paint(inavdash.layout.consumption.x, inavdash.layout.consumption.y, inavdash.layout.consumption.w, inavdash.layout.consumption.h, "Consumption", sensors['consumption'] or 0, units['consumption'] or "mAh", opts)
+        end
+
         -- Current
         if inavdash.layout.current then
             local opts = {
@@ -396,6 +395,7 @@ function inavdash.wakeup()
         sensors['gps_longitude'], units['gps_longitude']     = inavdash.sensors.telemetry.getSensor('gps_longitude')
         sensors['flightmode'],    units['flightmode']         = inavdash.sensors.telemetry.getSensor('flightmode')
         sensors['vertical_speed'], units['vertical_speed']     = inavdash.sensors.telemetry.getSensor('vertical_speed')
+        sensors['consumption'], units['consumption']     = inavdash.sensors.telemetry.getSensor('consumption')
 
         if sensors['gps_lock'] == false then
             sensors['groundspeed'] =  0
