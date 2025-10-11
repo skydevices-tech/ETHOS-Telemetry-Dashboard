@@ -3,7 +3,8 @@ local radio = assert(loadfile("radios.lua"))()
 
 -- width-stabilizer for multibyte glyphs (optional)
 local function ascii_skeleton(s)
-    return (s or ""):gsub("[\128-\255]", "x")
+    s = (s or ""):gsub("°", "x")
+    return s:gsub("[\128-\255]", "x")
 end
 
 -- helper: convert decimal degrees to DMS string
@@ -15,6 +16,13 @@ local function toDMS(deg, isLat)
     local dir = isLat and ((deg >= 0) and "N" or "S") or ((deg >= 0) and "E" or "W")
     return string.format("%d°%02d'%04.1f\"%s", d, m, s, dir)
 end
+
+
+-- helper: convert decimal degrees to a decimal string (signed)
+    local function toDEC(deg, places)
+        local fmt = string.format("%%.%df°", places or 5)
+        return string.format(fmt, deg)
+    end
 
 -- choose largest font where a single line fits
 local function chooseFontSingle(text, maxW, maxH, fonts, useAscii)
@@ -55,6 +63,8 @@ local function chooseFontTwoLines(line1, line2, gap, maxW, maxH, fonts, useAscii
 end
 
 function render.paint(x, y, w, h, label, latitude, longitude, opts)
+
+
     opts = opts or {}
     if not opts.colorbg    then opts.colorbg    = lcd.RGB(0, 0, 0) end
     if not opts.colorvalue then opts.colorvalue = lcd.RGB(255, 255, 255) end
@@ -87,11 +97,23 @@ function render.paint(x, y, w, h, label, latitude, longitude, opts)
         offsetY = title.h - 3              -- push content down a touch
     end
 
-    -----------------------------------------------------------------------
-    -- Two-line value block (Latitude / Longitude), auto-sized together
-    -----------------------------------------------------------------------
-    local latStr = toDMS(latitude, true)
-    local lonStr = toDMS(longitude, false)
+    
+-----------------------------------------------------------------------
+-- Two-line value block (Latitude / Longitude), auto-sized together
+-----------------------------------------------------------------------
+local useDecimal = (opts.minWidthForDMS ~= nil) and (w < opts.minWidthForDMS)
+
+local latStr, lonStr
+if useDecimal then
+    -- Decimal degrees (signed): e.g., 51.5074°, -0.1278°
+    latStr = toDEC(latitude, opts.decimalPlaces)
+    lonStr = toDEC(longitude, opts.decimalPlaces)
+else
+    -- Original DMS rendering with N/S/E/W
+    latStr = toDMS(latitude, true)
+    lonStr = toDMS(longitude, false)
+end
+
 
     local gap = radio.gpsLineGap or 4
     local fontsValue = radio.gpsFontValue or {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L}

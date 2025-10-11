@@ -13,6 +13,7 @@ local telemetryType
 
 local _sourceCache = setmetatable({}, { __mode = "v" })
 local _createTried = {}
+local _dropDone = false
 
 -- creation throttling
 local _startTime = os.clock()         -- seconds since Lua VM start
@@ -33,6 +34,7 @@ local function _creationAllowed()
     end
     return true
 end
+
 
 local sensorTable = {
 
@@ -79,20 +81,11 @@ local sensorTable = {
     fuel = {
         name = "Fuel",
         unit_string = "%",
+        autoCreate = true,
         sensors = {
             sport = { { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0600 }, },
-            crsf = { "Rx Batt%" },
-        },
-        transform = function(value)
-            if currentTelemetryType == "sport" then
-                if value then
-                    return 100 - value
-                end
-                return value
-            else
-                return value
-            end
-        end        
+            crsf = { "Rx Cons" },
+        },      
     },
 
     -- Current Sensors
@@ -158,18 +151,6 @@ local sensorTable = {
             return value
         end        
     },  
-
-    consumption = {
-        name = "Consumption",
-        unit_string = "mAh",
-        sensors = {
-            sport = {
-                { appId = 0x0B60, subId = 1 },
-                { appId = 0x0B30, subId = 0 },
-            },
-            crsf = { "Rx Cons" },
-        },
-    },
 
 
     heading = {
@@ -408,6 +389,22 @@ local autoCreate = {
         appId    = 0x0480,
         subId    = 0,
     },
+    fuel = {
+        name     = "Fuel",
+        unit     = UNIT_MILLIAMPERE_HOUR,
+        decimals = 0,
+        appId    = 0x0600,
+        subId    = 0,
+    },    
+}
+
+local autoDrop = {
+    fuel = {
+        name     = "Fuel",
+        unit     = UNIT_PERCENT,
+        appId    = 0x0600,
+        subId    = 0,
+    }, 
 }
 
 
@@ -528,6 +525,37 @@ function telemetry.getSensorProtocol()
 end
 
 
+-- add this helper anywhere near other local functions (e.g., above _createSportSensor)
+local function _runDropCycle()
+    -- Only relevant when we actually have SPORT telemetry up
+    if _dropDone then return end
+    if currentTelemetryType ~= "sport" or not currentTelemetrySensor then return end
+
+    -- Walk the drop table: if an existing sensor uses the "patching/matching" unit, drop it
+    for key, cfg in pairs(autoDrop or {}) do
+        -- Make sure required fields exist
+        if cfg.appId then
+            local src = system.getSource({ appId = cfg.appId, subId = cfg.subId or 0 })
+            if src then
+                local u = src:unit()
+                print("Found auto-drop sensor: " .. (cfg.name or "?") .. " unit=" .. tostring(u) .. " appId=" .. string.format("%04X", cfg.appId) .. " subId=" .. tostring(cfg.subId or 0))
+                -- If the current unit is the one we want to replace, drop the source so it can be recreated cleanly
+                if u == cfg.unit then
+                    -- drop() is provided by ETHOS for telemetry sources
+                    if type(src.drop) == "function" then
+                        src:drop()
+                    end
+                end
+
+                _sourceCache[src] = nil  -- also clear any cached handle 
+
+            end
+        end
+    end
+
+    _dropDone = true
+end
+
 --[[ 
     Helper: Get the raw Source object for a given sensorKey, caching as we go.
 ]]
@@ -553,6 +581,9 @@ function telemetry.getSensorSource(name)
             end
     elseif currentTelemetryType == "sport" then
         protocol = "sport"
+
+        _runDropCycle()
+
         local entry = sensorTable[name]
         for _, sensor in ipairs(entry.sensors.sport or {}) do
             local source = system.getSource(sensor)
