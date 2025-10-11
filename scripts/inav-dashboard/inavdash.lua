@@ -257,6 +257,7 @@ function inavdash.paint()
                 colorlabel = colors.label,
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
+                widthAsciiFallback = true
             }
 
             inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading'] or 0), units['heading'], opts)
@@ -343,8 +344,9 @@ function inavdash.paint()
             colorlabel = colors.label,
             fontvalue = FONT_S,
             fontlabel = FONT_XS,
-            minWidthForDMS = 100,
+            minWidthForDMS = 300,
             decimalPlaces = 4,
+            widthAsciiFallback = true
         }
         inavdash.render.gps.paint(inavdash.layout.gps.x, inavdash.layout.gps.y, inavdash.layout.gps.w, inavdash.layout.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
     end

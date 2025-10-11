@@ -3,7 +3,8 @@ local radio = assert(loadfile("radios.lua"))()
 
 -- width-stabilizer for multibyte glyphs (optional)
 local function ascii_skeleton(s)
-    return (s or ""):gsub("[\128-\255]", "x")
+    s = (s or ""):gsub("°", "x")
+    return s:gsub("[\128-\255]", "x")
 end
 
 -- helper: convert decimal degrees to DMS string

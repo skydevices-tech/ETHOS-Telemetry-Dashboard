@@ -3,7 +3,8 @@ local radio = assert(loadfile("radios.lua"))()
 
 -- optional: ASCII-only skeleton for width calc when fonts mis-measure multibyte glyphs
 local function ascii_skeleton(s)
-    return (s or ""):gsub("[\128-\255]", "x")
+    s = (s or ""):gsub("°", "x")
+    return s:gsub("[\128-\255]", "x")
 end
 
 -- Helper: pick the largest font where (value + gap + unit) fits the box
