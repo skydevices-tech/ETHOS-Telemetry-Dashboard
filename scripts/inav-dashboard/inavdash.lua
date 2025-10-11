@@ -51,20 +51,20 @@ local GRID_WIDGETS = nil
 
 local GRID_PAGES = {
     [1] = {
-        ah            =  { col = 9,  row = 1, colspan = 16, rowspan = 10 },
-        flightmode    =  { col = 1,  row = 9, colspan = 8, rowspan = 4 },
+        ah            =  { col = 9,  row = 1, colspan = 16, rowspan = 11 },
+        flightmode    =  { col = 1,  row = 9, colspan = 8, rowspan = 3 },
         map           =  nil,
         altitude      =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },
         groundspeed   =  { col = 5, row = 5, colspan = 4,  rowspan = 4 },  
         heading       =  nil,
         satellites    =  { col = 5, row = 1, colspan = 4,  rowspan = 4 },
-        gps           =  { col = 1,  row = 13, colspan = 12,  rowspan = 4 },
+        gps           =  { col = 1,  row = 12, colspan = 12,  rowspan = 5 },
         gps_lock      =  { col = 1,  row = 5, colspan = 4,  rowspan = 4 },
         voltage       =  { col = 25,  row = 1, colspan = 4,  rowspan = 4 },
         current       =  { col = 29,  row = 1, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 25,  row = 9, colspan = 8,  rowspan = 4 },
+        fuel          =  { col = 25,  row = 9, colspan = 8,  rowspan = 3 },
         rssi          =  { col = 1, row = 1, colspan = 4,  rowspan = 4 },
-        home_dir      =  { col = 13, row = 11, colspan = 8,  rowspan = 6 },   
+        home_dir      =  { col = 13, row = 12, colspan = 8,  rowspan = 5 },   
         vspeed        =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
     },
     --[[    
