@@ -58,12 +58,12 @@ local GRID_PAGES = {
         groundspeed   =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },  
         heading       =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
         satellites    =  { col = 25, row = 9, colspan = 4,  rowspan = 4 },
-        gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
-        gps_lock      =  { col = 29,  row = 9, colspan = 4,  rowspan = 4 },
+        gps           =  { col = 25,  row = 13, colspan = 4,  rowspan = 4 },
+        gps_lock      =  { col = 29,  row = 13, colspan = 4,  rowspan = 4 },
         voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
         current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
-        rssi          =  { col = 13, row = 13, colspan = 4,  rowspan = 4 },
+        fuel          =  { col = 9,  row = 13, colspan = 8,  rowspan = 4 },
+        rssi          =  { col = 29, row = 9, colspan = 4,  rowspan = 4 },
         home_dir      =  { col = 17, row = 0, colspan = 8,  rowspan = 12 },   
         vspeed        =  { col = 29, row = 1, colspan = 4,  rowspan = 4 },
     },
@@ -287,7 +287,7 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "%", opts)
+            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "mAh", opts)
         end
 
         -- Current
@@ -343,6 +343,8 @@ function inavdash.paint()
             colorlabel = colors.label,
             fontvalue = FONT_S,
             fontlabel = FONT_XS,
+            minWidthForDMS = 100,
+            decimalPlaces = 4,
         }
         inavdash.render.gps.paint(inavdash.layout.gps.x, inavdash.layout.gps.y, inavdash.layout.gps.w, inavdash.layout.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
     end
