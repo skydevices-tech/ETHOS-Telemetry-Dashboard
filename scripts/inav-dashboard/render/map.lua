@@ -155,7 +155,14 @@ function RenderMap.wakeup(x, y, w, h, sensors, units, opts)
     own_tri=own_tri,
     home_xy={x=x+hx,y=y+hy},
     spd_vec=(vx and vy) and {cx,cy,vx,vy} or nil,
-    readout={gs=gs,dist=dist_m,brg=brg,speed_unit="kt",dist_unit="m",course=course},
+    readout={
+      gs = gs,
+      dist = dist_m,
+      brg = brg,
+      speed_unit = (units and units.groundspeed) or "kt",
+      dist_unit  = (units and units.distance) or "m",
+      course = course
+    },
     show_distance=(opts.show_distance~=false),
     show_zoom=(opts.show_zoom==true),
     show_grid=(opts.show_grid~=false),
@@ -220,8 +227,19 @@ function RenderMap.paint()
     local gs = tonumber(F.readout.gs) or 0
     local dist_ft = (tonumber(F.readout.dist) or 0)*3.28084
     local brg = tonumber(F.readout.brg) or 0
-    lcd.drawText(i(x+4),i(y+4),string.format("%.1f kt",gs))
-    lcd.drawText(i(x+4),i(y+h-12),string.format("%dft  %03d°",math.floor(dist_ft+0.5),(math.floor(brg+0.5))%360))
+    local spd_unit = F.readout.speed_unit or "kt"
+    local dist_unit = F.readout.dist_unit or "m"
+    local dist_value = F.readout.dist or 0
+    -- convert distance if needed (basic support)
+    if dist_unit == "ft" then
+      dist_value = dist_value * 3.28084
+    elseif dist_unit == "km" then
+      dist_value = dist_value / 1000
+    end
+
+    lcd.drawText(i(x+4), i(y+4), string.format("%.1f %s", gs, spd_unit))
+    lcd.drawText(i(x+4), i(y+h-12),
+      string.format("%d%s  %03d°", math.floor(dist_value+0.5), dist_unit, (math.floor(brg+0.5))%360))
   end
 
   if F.show_zoom then
