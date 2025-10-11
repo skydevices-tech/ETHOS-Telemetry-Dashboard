@@ -61,6 +61,22 @@ local function _dispose_rot()
   _rot.angle, _rot.bmp = nil, nil
 end
 
+-- Public: reset rotation + bitmap caches so we can change arrow colour / theme at runtime.
+-- Optional new_path lets you switch to a different image in the same call.
+function HD.resetArrowCache(new_path)
+  -- nuke rotated cache (frees Ethos-side rotated bitmap if supported)
+  _dispose_rot()
+  -- nuke base bitmap cache so a modified or new file is reloaded, even if the path is identical
+  _bmp.path, _bmp.src = nil, nil
+  -- update current frame's image path if provided
+  if new_path and HD._frame then HD._frame.img_path = new_path end
+  -- re-resolve immediately if we have a frame + path; otherwise next wakeup() will resolve
+  if HD._frame then
+    local p = HD._frame.img_path
+    if p then HD._frame.img = _resolve_bitmap(p) end
+  end
+end
+
 local function _bmp_size(b)
   if not b then return 0,0 end
   local w = (b.width and ((type(b.width)=="function") and b:width() or b.width))
@@ -125,6 +141,7 @@ function HD.wakeup(x, y, w, h, sensors, units, opts)
     box={x=x,y=y,w=w,h=h},
     colors={bg=col_bg, ring=col_ring, text=col_text},
     img=img,
+    opts=opts, 
     img_path=img_path,
     ring={r=R, show=(opts.show_ring ~= false)},
     text={ show=(opts.show_text == true), str=status },

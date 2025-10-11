@@ -12,6 +12,7 @@ local units = {}
 local internalModule = nil
 local externalModule = nil
 local currentPage = currentPage or 1
+local lastColourMode = nil
 
 -- GPS Lock
 local gps_lock_prev = false
@@ -361,6 +362,7 @@ function inavdash.paint()
 end
 
 function inavdash.wakeup()
+    local colorMode
 
     if GRID_WIDGETS == nil then
         -- First time only: pick a page layout
@@ -369,10 +371,21 @@ function inavdash.wakeup()
 
     if lcd.darkMode() then
         colors = colorTable['darkmode']
+        colorMode = 'darkmode'
     else
         colors = colorTable['lightmode']
+        colorMode = 'lightmode'
     end
 
+ 
+    -- When darkMode flips, reload the HD image + clear rotation cache
+    if colorMode ~= lastColourMode then
+        if inavdash.render and inavdash.render.hd and inavdash.render.hd.resetArrowCache then
+            -- use the themed image path from your table
+            inavdash.render.hd.resetArrowCache(colors.hd)
+        end
+        lastColourMode = colorMode
+    end   
 
     -- Get screen sizes and layout if not done yet
     getScreenSizes()
