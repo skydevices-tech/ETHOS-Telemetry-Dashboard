@@ -11,7 +11,7 @@ local sensors = {}
 local units = {}
 local internalModule = nil
 local externalModule = nil
-local currentPage = currentPage or 1
+local currentPage = nil
 local lastColourMode = nil
 
 -- GPS Lock
@@ -618,11 +618,16 @@ function inavdash.wakeup()
 end
 
 function inavdash.read()
-    -- body
+    local storedPage = storage.read("currentPage") 
+    if storedPage then
+        currentPage = tonumber(storedPage)
+    else
+        currentPage = 1    
+    end
 end
 
 function inavdash.write()
-    -- body
+    storage.write("currentPage", tostring(currentPage or 1))
 end
 
 function inavdash.event(widget, category, value, x, y)
