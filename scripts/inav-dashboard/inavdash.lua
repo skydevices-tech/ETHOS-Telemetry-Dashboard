@@ -251,7 +251,7 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.vspeed.x, inavdash.layout.vspeed.y, inavdash.layout.vspeed.w, inavdash.layout.vspeed.h, "Climb Rate", sensors['vertical_speed'] or 0, units['vertical_speed'], opts)
+            inavdash.render.telemetry.paint(inavdash.layout.vspeed.x, inavdash.layout.vspeed.y, inavdash.layout.vspeed.w, inavdash.layout.vspeed.h, "vario", sensors['vertical_speed'] or 0, units['vertical_speed'], opts)
         end
 
         -- Ground Speed
