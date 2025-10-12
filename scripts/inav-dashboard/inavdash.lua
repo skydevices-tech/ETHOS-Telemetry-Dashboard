@@ -77,10 +77,10 @@ local LAYOUTS = {
         table = {
             ah            =  { col = 9,  row = 1, colspan = 16, rowspan = 11 },
             flightmode    =  { col = 1,  row = 9, colspan = 8, rowspan = 3 },
-            map           =  nil,
+            map           =  { col = 21, row = 12, colspan = 12,  rowspan = 5 },
             altitude      =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },
             groundspeed   =  { col = 5, row = 5, colspan = 4,  rowspan = 4 },  
-            distance       = { col = 21, row = 12, colspan = 12,  rowspan = 5 }, 
+            distance      = nil, 
             satellites    =  { col = 5, row = 1, colspan = 4,  rowspan = 4 },
             gps           =  { col = 1,  row = 12, colspan = 12,  rowspan = 5 },
             gps_lock      =  { col = 1,  row = 5, colspan = 4,  rowspan = 4 },
