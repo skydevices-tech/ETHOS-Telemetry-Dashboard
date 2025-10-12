@@ -136,7 +136,7 @@ local sensorTable = {
     },    
 
     vertical_speed = {
-        name = "vario",
+        name = "Vspeed",
         sensors = {
             sport = { 
                 { category = CATEGORY_TELEMETRY_SENSOR, appId = 0x0110 },
