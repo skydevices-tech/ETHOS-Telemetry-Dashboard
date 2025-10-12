@@ -61,11 +61,11 @@ local GRID_PAGES = {
         gps           =  { col = 5,  row = 13, colspan = 8,  rowspan = 4 },
         gps_lock      =  { col = 1,  row = 5, colspan = 4,  rowspan = 4 },
         voltage       =  { col = 25,  row = 1, colspan = 4,  rowspan = 4 },
-        current       =  { col = 29,  row = 1, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 25,  row = 9, colspan = 8,  rowspan = 4 },
+        current       =  { col = 25,  row = 9, colspan = 8,  rowspan = 4 },  
+        fuel          =  { col = 9,  row = 13, colspan = 8,  rowspan = 4 },
         rssi          =  { col = 1, row = 1, colspan = 4,  rowspan = 4 },
-        home_dir      =  { col = 13, row = 11, colspan = 6,  rowspan = 6 },   
-        vspeed        =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
+        home_dir      =  { col = 13, row = 10, colspan = 6,  rowspan = 8 },   
+        vspeed        =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },
     },
     --[[    
     [1] = {
