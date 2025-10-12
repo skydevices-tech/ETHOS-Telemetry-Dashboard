@@ -39,66 +39,82 @@ local colors
 -- Define your grid once
 -- This is a simply html-style grid system
 -- You can adjust the number of columns/rows/padding to taste
-local GRID = {
-  cols   = 32,   -- change to taste
-  rows   = 16,
-  pad    = 2,   -- pixel gap between cells
-  header = 0,   -- reserve a fixed px header if you ever need a title bar
-}
 
 -- Place widgets in grid terms (col/row are 1-based)
-local GRID_WIDGETS = nil
-
-local GRID_PAGES = {
+local LAYOUTS = {
     [1] = {
-        ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
-        flightmode    =  { col = 17,  row = 13, colspan = 8, rowspan = 4 },
-        map           =  nil,
-        altitude      =  { col = 25, row = 1, colspan = 4,  rowspan = 4 },
-        groundspeed   =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },  
-        heading       =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
-        satellites    =  { col = 25, row = 9, colspan = 4,  rowspan = 4 },
-        gps           =  { col = 25,  row = 13, colspan = 4,  rowspan = 4 },
-        gps_lock      =  { col = 29,  row = 13, colspan = 4,  rowspan = 4 },
-        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
-        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 9,  row = 13, colspan = 8,  rowspan = 4 },
-        rssi          =  { col = 29, row = 9, colspan = 4,  rowspan = 4 },
-        home_dir      =  { col = 17, row = 0, colspan = 8,  rowspan = 12 },   
-        vspeed        =  { col = 29, row = 1, colspan = 4,  rowspan = 4 },
+        grid = {
+            cols   = 32,   -- change to taste
+            rows   = 16,
+            pad    = 2,   -- pixel gap between cells
+            header = 0,   -- reserve a fixed px header if you ever need a title bar
+        },
+        table = {
+            ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
+            flightmode    =  { col = 17,  row = 13, colspan = 8, rowspan = 4 },
+            map           =  nil,
+            altitude      =  { col = 25, row = 1, colspan = 4,  rowspan = 4 },
+            groundspeed   =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },  
+            heading       =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
+            satellites    =  { col = 25, row = 9, colspan = 4,  rowspan = 4 },
+            gps           =  { col = 25,  row = 13, colspan = 4,  rowspan = 4 },
+            gps_lock      =  { col = 29,  row = 13, colspan = 4,  rowspan = 4 },
+            voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+            current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
+            fuel          =  { col = 9,  row = 13, colspan = 8,  rowspan = 4 },
+            rssi          =  { col = 29, row = 9, colspan = 4,  rowspan = 4 },
+            home_dir      =  { col = 17, row = 0, colspan = 8,  rowspan = 12 },   
+            vspeed        =  { col = 29, row = 1, colspan = 4,  rowspan = 4 },
+        }
     },
-    --[[    
-    [1] = {
-        ah            =  { col = 1,  row = 1, colspan = 12, rowspan = 8 },
-        flightmode    =  { col = 1,  row = 9, colspan = 12, rowspan = 4 },
-        map           =  { col = 13, row = 1, colspan = 14, rowspan = 8 },
-        altitude      =  { col = 23, row = 9, colspan = 4,  rowspan = 4 },
-        groundspeed   =  { col = 19, row = 9, colspan = 4,  rowspan = 4 },  
-        heading       =  { col = 27, row = 5, colspan = 4,  rowspan = 4 },
-        satellites    =  { col = 27, row = 9, colspan = 4,  rowspan = 4 },
-        gps           =  { col = 19,  row = 13, colspan = 8,  rowspan = 4 },
-        gps_lock      =  { col = 27,  row = 13, colspan = 4,  rowspan = 4 },
-        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
-        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 },  
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
-        rssi          =  { col = 27, row = 1, colspan = 4,  rowspan = 4 },
-        home_dir      =  { col = 13, row = 9, colspan = 6,  rowspan = 8 },   
-    },]]
     [2] = {
-        ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
-        flightmode    =  nil,
-        map           =  { col = 17,  row = 1, colspan = 16, rowspan = 12 },
-        altitude      =  { col = 13,  row = 13, colspan = 4,  rowspan = 4 },
-        groundspeed   =  { col = 17,  row = 13, colspan = 4,  rowspan = 4 },
-        vspeed       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
-        satellites    =  nil,
-        gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
-        gps_lock      =  nil,
-        voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
-        current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 }, 
-        fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
-        rssi          =  nil,
-        home_dir      =  nil
+        grid = {
+            cols   = 32,   -- change to taste
+            rows   = 16,
+            pad    = 2,   -- pixel gap between cells
+            header = 0,   -- reserve a fixed px header if you ever need a title bar
+        },
+        table = {
+            ah            =  { col = 9,  row = 1, colspan = 16, rowspan = 11 },
+            flightmode    =  { col = 1,  row = 9, colspan = 8, rowspan = 3 },
+            map           =  nil,
+            altitude      =  { col = 25, row = 5, colspan = 4,  rowspan = 4 },
+            groundspeed   =  { col = 5, row = 5, colspan = 4,  rowspan = 4 },  
+            distance       = { col = 21, row = 12, colspan = 12,  rowspan = 5 }, 
+            satellites    =  { col = 5, row = 1, colspan = 4,  rowspan = 4 },
+            gps           =  { col = 1,  row = 12, colspan = 12,  rowspan = 5 },
+            gps_lock      =  { col = 1,  row = 5, colspan = 4,  rowspan = 4 },
+            voltage       =  { col = 25,  row = 1, colspan = 4,  rowspan = 4 },
+            current       =  { col = 29,  row = 1, colspan = 4,  rowspan = 4 },  
+            fuel          =  { col = 25,  row = 9, colspan = 8,  rowspan = 3 },
+            rssi          =  { col = 1, row = 1, colspan = 4,  rowspan = 4 },
+            home_dir      =  { col = 13, row = 12, colspan = 8,  rowspan = 5 },   
+            vspeed        =  { col = 29, row = 5, colspan = 4,  rowspan = 4 },
+        }
+    },   
+    [3] = {
+        grid = {
+            cols   = 32,   -- change to taste
+            rows   = 16,
+            pad    = 2,   -- pixel gap between cells
+            header = 0,   -- reserve a fixed px header if you ever need a title bar
+        },
+        table = {
+            ah            =  { col = 1,  row = 1, colspan = 16, rowspan = 12 },
+            flightmode    =  nil,
+            map           =  { col = 17,  row = 1, colspan = 16, rowspan = 12 },
+            altitude      =  { col = 13,  row = 13, colspan = 4,  rowspan = 4 },
+            groundspeed   =  { col = 17,  row = 13, colspan = 4,  rowspan = 4 },
+            vspeed       =  { col = 21,  row = 13, colspan = 4,  rowspan = 4 },
+            satellites    =  nil,
+            gps           =  { col = 25,  row = 13, colspan = 8,  rowspan = 4 },
+            gps_lock      =  nil,
+            voltage       =  { col = 1,  row = 13, colspan = 4,  rowspan = 4 },
+            current       =  { col = 5,  row = 13, colspan = 4,  rowspan = 4 }, 
+            fuel          =  { col = 9,  row = 13, colspan = 4,  rowspan = 4 },
+            rssi          =  nil,
+            home_dir      =  nil
+        }
     },
     
 
@@ -147,12 +163,15 @@ local function computeGridRects(sw, sh, grid, widgets)
   return rects
 end
 
--- Replace the old per-resolution logic with a single compute
-local function getScreenSizes()
-  local sw, sh = lcd.getWindowSize()
-  inavdash.layout = computeGridRects(sw, sh, GRID, GRID_WIDGETS)
+local function getCurrentPage()
+  return LAYOUTS[currentPage] or LAYOUTS[1]
 end
 
+local function recomputeLayout()
+  local sw, sh = lcd.getWindowSize()
+  local page = getCurrentPage()
+  inavdash.layout = computeGridRects(sw, sh, page.grid or {}, page.table or {})
+end
 
 function inavdash.create()
 
@@ -263,6 +282,20 @@ function inavdash.paint()
             inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading'] or 0), units['heading'], opts)
         end
 
+        -- Distance
+        if inavdash.layout.distance then
+            local opts = {
+                colorbg = colors.background,
+                colorvalue = colors.foreground,
+                colorlabel = colors.label,
+                fontvalue = FONT_L,
+                fontlabel = FONT_XS,
+                widthAsciiFallback = true
+            }
+
+            inavdash.render.telemetry.paint(inavdash.layout.distance.x, inavdash.layout.distance.y, inavdash.layout.distance.w, inavdash.layout.distance.h, "Distance", math.floor(sensors['gps_distancehome'] or 0), units['gps_distancehome'], opts)
+        end
+
         -- Voltage
         if inavdash.layout.voltage then 
             local opts = {
@@ -369,11 +402,6 @@ end
 function inavdash.wakeup()
     local colorMode
 
-    if GRID_WIDGETS == nil then
-        -- First time only: pick a page layout
-        GRID_WIDGETS = GRID_PAGES[currentPage] or GRID_PAGES[1]
-    end
-
     if lcd.darkMode() then
         colors = colorTable['darkmode']
         colorMode = 'darkmode'
@@ -382,7 +410,6 @@ function inavdash.wakeup()
         colorMode = 'lightmode'
     end
 
- 
     -- When darkMode flips, reload the HD image + clear rotation cache
     if colorMode ~= lastColourMode then
         if inavdash.render and inavdash.render.hd and inavdash.render.hd.resetArrowCache then
@@ -393,7 +420,7 @@ function inavdash.wakeup()
     end   
 
     -- Get screen sizes and layout if not done yet
-    getScreenSizes()
+    recomputeLayout()
 
     -- Check sensors
     if inavdash.sensors and inavdash.sensors.telemetry then
@@ -413,6 +440,7 @@ function inavdash.wakeup()
         sensors['gps_longitude'], units['gps_longitude']     = inavdash.sensors.telemetry.getSensor('gps_longitude')
         sensors['flightmode'],    units['flightmode']         = inavdash.sensors.telemetry.getSensor('flightmode')
         sensors['vertical_speed'], units['vertical_speed']     = inavdash.sensors.telemetry.getSensor('vertical_speed')
+        
 
         if sensors['gps_lock'] == false then
             sensors['groundspeed'] =  0
@@ -469,8 +497,10 @@ function inavdash.wakeup()
         if sensors['gps_lock'] and lat and lon and hlat and hlon and hlat ~= 0 and hlon ~= 0 then
             local dx, dy = inavdash.render.map.enu_dxdy(lat, lon, hlat, hlon) -- meters East/North
             sensors['gps_distancehome'] = inavdash.render.map.hypot(dx, dy)   -- meters
+            units['gps_distancehome'] = "m"
         else
             sensors['gps_distancehome'] = 0
+            units['gps_distancehome'] = "m"
         end
         end      
         
@@ -601,7 +631,7 @@ function inavdash.event(widget, category, value, x, y)
         return false
     end
 
-    local num_pages = #GRID_PAGES
+    local num_pages = #LAYOUTS
     currentPage = currentPage or 1
     local prevPage = currentPage
 
@@ -620,7 +650,7 @@ function inavdash.event(widget, category, value, x, y)
 
     -- Update the widgets to the current page (only if page actually changed)
     if currentPage ~= prevPage then
-        GRID_WIDGETS = GRID_PAGES[currentPage]
+        recomputeLayout()
         return true
     end
 
