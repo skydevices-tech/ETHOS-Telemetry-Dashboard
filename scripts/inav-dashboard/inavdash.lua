@@ -626,36 +626,35 @@ function inavdash.write()
 end
 
 function inavdash.event(widget, category, value, x, y)
-
-    if lcd.hasFocus() == false then
+    if not lcd.hasFocus() then
         return false
     end
 
     local num_pages = #LAYOUTS
+    if num_pages == 0 then
+        return false
+    end
+
     currentPage = currentPage or 1
     local prevPage = currentPage
 
-
-    if value == 4100 then -- scroll right
-        if currentPage < num_pages then
-            currentPage = currentPage + 1
-        end
-
-    elseif value == 4099 then -- scroll left
-        if currentPage > 1 then
-            currentPage = currentPage - 1
+    -- Cycle to next page when event value == 32
+    if value == 32 then
+        currentPage = currentPage + 1
+        if currentPage > num_pages then
+            currentPage = 1
         end
     end
 
-
-    -- Update the widgets to the current page (only if page actually changed)
+    -- Only update if page actually changed
     if currentPage ~= prevPage then
         recomputeLayout()
         return true
     end
 
-
+    return false
 end
+
 
 
 
