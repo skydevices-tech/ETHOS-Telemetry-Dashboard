@@ -194,6 +194,9 @@ function HD.paint()
   if F.text.show then
     lcd.color(F.colors.text); lcd.font(FONT_XS)
     local tw, th = lcd.getTextSize(F.text.str)
+    if h < 80 then  -- bump text slightly lower
+      y = y + th/2
+    end
     dtext(cx - tw/2, y + h - 14 - (th/2), F.text.str)
   end
 

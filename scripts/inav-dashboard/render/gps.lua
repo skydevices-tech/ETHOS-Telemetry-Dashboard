@@ -106,8 +106,13 @@ local useDecimal = (opts.minWidthForDMS ~= nil) and (w < opts.minWidthForDMS)
 local latStr, lonStr
 if useDecimal then
     -- Decimal degrees (signed): e.g., 51.5074°, -0.1278°
-    latStr = toDEC(latitude, opts.decimalPlaces)
-    lonStr = toDEC(longitude, opts.decimalPlaces)
+    if w < 100 then
+        latStr = toDEC(latitude, 3)
+        lonStr = toDEC(longitude, 3)
+    else
+        latStr = toDEC(latitude, opts.decimalPlaces)
+        lonStr = toDEC(longitude, opts.decimalPlaces)       
+    end
 else
     -- Original DMS rendering with N/S/E/W
     latStr = toDMS(latitude, true)
