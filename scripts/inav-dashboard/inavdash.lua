@@ -75,21 +75,21 @@ local LAYOUTS = {
             header = 0,   -- reserve a fixed px header if you ever need a title bar
         },
         table = {
-            ah            =  { col = 9,  row = 1, colspan = 16, rowspan = 9 },
-            flightmode    =  { col = 1,  row = 7, colspan = 8, rowspan = 3 },
-            map           =  { col = 21, row = 10, colspan = 12,  rowspan = 7 },
-            altitude      =  { col = 25, row = 4, colspan = 4,  rowspan = 3 },
-            groundspeed   =  { col = 5, row = 4, colspan = 4,  rowspan = 3 },  
-            distance      = nil, 
-            satellites    =  { col = 5, row = 1, colspan = 4,  rowspan = 3 },
-            gps           =  { col = 1,  row = 10, colspan = 12,  rowspan = 7 },
-            gps_lock      =  { col = 1,  row = 4, colspan = 4,  rowspan = 3 },
-            voltage       =  { col = 25,  row = 1, colspan = 4,  rowspan = 3 },
-            current       =  { col = 29,  row = 1, colspan = 4,  rowspan = 3 },  
-            fuel          =  { col = 25,  row = 7, colspan = 8,  rowspan = 3 },
-            rssi          =  { col = 1, row = 1, colspan = 4,  rowspan = 3 },
-            home_dir      =  { col = 13, row = 10, colspan = 8,  rowspan = 7 },   
-            vspeed        =  { col = 29, row = 4, colspan = 4,  rowspan = 3 },
+            ah             =  { col = 9,  row = 1, colspan = 16, rowspan = 9 },
+            flightmode     =  { col = 1,  row = 10, colspan = 12,  rowspan = 3 },
+            map            =  { col = 21, row = 10, colspan = 12,  rowspan = 7 },
+            altitude       =  { col = 25, row = 4, colspan = 4,  rowspan = 3 },
+            groundspeed    =  { col = 5, row = 4, colspan = 4,  rowspan = 3 },  
+            distance       = { col = 1,  row = 7, colspan = 8, rowspan = 3 }, 
+            satellites     =  { col = 5, row = 1, colspan = 4,  rowspan = 3 },
+            gps            = { col = 1,  row = 13, colspan = 12,  rowspan = 4 },
+            gps_lock       =  { col = 1,  row = 4, colspan = 4,  rowspan = 3 },
+            voltage        =  { col = 25,  row = 1, colspan = 4,  rowspan = 3 },
+            current        =  { col = 29,  row = 1, colspan = 4,  rowspan = 3 },  
+            fuel           =  { col = 25,  row = 7, colspan = 8,  rowspan = 3 },
+            rssi           =  { col = 1, row = 1, colspan = 4,  rowspan = 3 },
+            home_dir_light =  { col = 13, row = 10, colspan = 8,  rowspan = 7 },   
+            vspeed         =  { col = 29, row = 4, colspan = 4,  rowspan = 3 },
         }
     },   
     [3] = {
@@ -186,6 +186,7 @@ function inavdash.create()
     if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
     if not inavdash.render.flightmode then inavdash.render.flightmode = assert(loadfile("render/flightmode.lua"))() end
     if not inavdash.render.hd then inavdash.render.hd = assert(loadfile("render/homedirection.lua"))() end
+    if not inavdash.render.hd_light then inavdash.render.hd_light = assert(loadfile("render/homedirection_light.lua"))() end
 
 
 end
@@ -366,6 +367,8 @@ function inavdash.paint()
 
         if inavdash.layout.home_dir then inavdash.render.hd.paint() end
 
+        if inavdash.layout.home_dir_light then inavdash.render.hd_light.paint() end
+
     end
 
 
@@ -415,6 +418,7 @@ function inavdash.wakeup()
         if inavdash.render and inavdash.render.hd and inavdash.render.hd.resetArrowCache then
             -- use the themed image path from your table
             inavdash.render.hd.resetArrowCache(colors.hd)
+            inavdash.render.hd_light.resetArrowCache(colors.hd_light)
         end
         lastColourMode = colorMode
     end   
@@ -584,6 +588,32 @@ function inavdash.wakeup()
         }
         if box then
             inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
+        end
+    end
+
+    if inavdash.layout.home_dir_light then
+        local box = inavdash.layout.home_dir_light
+        local s = {
+            latitude  = sensors['gps_latitude'],
+            longitude = sensors['gps_longitude'],
+            heading   = sensors['heading'],
+            home_lat  = sensors['home_latitude'],
+            home_lon  = sensors['home_longitude'],
+        }
+        local opts = {
+            colors = { 
+                bg = colors.background,
+                frame = colors.foreground, 
+                text = colors.foreground, 
+            },
+            show_ring = true,
+            show_text = false,
+            image = colors.hd,        -- single image
+            angle_step = 5,           -- 5° buckets
+            flip_180 = false,         -- set true if your hd.png points DOWN by default
+        }
+        if box then
+            inavdash.render.hd_light.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
         end
     end
 
