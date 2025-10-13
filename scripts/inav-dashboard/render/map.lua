@@ -242,7 +242,7 @@ function RenderMap.paint()
       string.format("%d%s  %03d°", math.floor(dist_value+0.5), dist_unit, (math.floor(brg+0.5))%360))
   end
 
-  if F.show_zoom then
+  if F.show_zoom and w >= 200 then
     lcd.color(F.colors.text); lcd.font(FONT_XS)
     local ppm = F.ppm or 1
     local step_px = F.grid_step or DEFAULT_GRID_STEP
