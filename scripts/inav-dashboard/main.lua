@@ -4,7 +4,7 @@ local inavdash= {}
 package.loaded.inavdash = inavdash
 
 -- Print warning if any global is created:
-local _ENV = setmetatable({ rfsuite = inavdash }, {
+local _ENV = setmetatable({ inavdash = inavdash }, {
   __index = _G,
   __newindex = function(_, k) print("attempt to create global '"..tostring(k).."'", 2) end
 })
