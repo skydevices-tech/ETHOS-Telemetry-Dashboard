@@ -3,10 +3,10 @@ local inavdash= {}
 
 package.loaded.inavdash = inavdash
 
--- If you still want to ban accidental globals in this chunk:
+-- Print warning if any global is created:
 local _ENV = setmetatable({ rfsuite = inavdash }, {
   __index = _G,
-  __newindex = function(_, k) error("attempt to create global '"..tostring(k).."'", 2) end
+  __newindex = function(_, k) print("attempt to create global '"..tostring(k).."'", 2) end
 })
 
 
