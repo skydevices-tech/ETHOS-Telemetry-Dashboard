@@ -1,3 +1,5 @@
+local inavdash = require("inavdash")
+
 local environment = system.getVersion()
 local LCD_W = environment['lcdWidth']
 local LCD_H = environment['lcdHeight']

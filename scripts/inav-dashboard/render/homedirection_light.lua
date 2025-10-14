@@ -18,7 +18,7 @@
 --  * Rotation is the signed difference from heading to bearing-to-home.
 --    +ve = turn right, -ve = turn left (clockwise positive for Ethos rotate).
 --  * If rotate() is not supported on your Ethos version, we draw a triangle.
-
+local inavdash = require("inavdash")
 local HD = { _frame = nil }
 
 -- ===== helpers =====

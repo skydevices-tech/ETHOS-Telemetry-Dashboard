@@ -1,3 +1,4 @@
+local inavdash = require("inavdash")
 -- render_ah_pure.lua
 -- Paint does NOTHING but draw. All math + sensor work happens in wakeup().
 

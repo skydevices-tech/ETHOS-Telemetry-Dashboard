@@ -1,3 +1,4 @@
+local inavdash = require("inavdash")
 local render = {}
 local radio = assert(loadfile("radios.lua"))()
 
