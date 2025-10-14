@@ -15,8 +15,8 @@ local MODE_TEXT = {
     [21] = "POSITION HOLD",
     [22] = "WAYPOINT",
     [23] = "RTH",
-    [26] = "CRUISE ANGLE",
-    [27] = "CRUISE HORIZON",
+    [26] = "COURSE HOLD",
+    [27] = "CRUISE",
     [99] = "FAILSAFE",
 }
 
