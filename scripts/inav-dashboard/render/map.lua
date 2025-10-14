@@ -1,3 +1,5 @@
+local inavdash = require("inavdash")
+
 -- render_map.lua (Ethos-safe, NO TRAIL)
 -- North-up or Heading-up mini map with home pointer. Integer-only drawing,
 -- no polygons, NaN/Inf guards, atan2 compatibility, and optional light mode.

@@ -1,4 +1,6 @@
 
+local inavdash = require("inavdash")
+
 local arg = {...}
 local flightmodes = assert(loadfile("sensors/flightmodes.lua"))()
 

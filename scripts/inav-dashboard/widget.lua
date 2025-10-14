@@ -1,10 +1,12 @@
--- Use the `inavdash` injected via ENV (from main.lua)
--- (No local table here—keep a single shared namespace)
+
+local inavdash = require("inavdash")
+
+local widget = {}
 
 -- external library placeholders (load them as a one off in create)
-inavdash.sensors = {}
-inavdash.layout =  {}
-inavdash.render =  {}
+widget.sensors = {}
+widget.layout =  {}
+widget.render =  {}
 
 
 local sensors = {}
@@ -170,32 +172,32 @@ end
 local function recomputeLayout()
   local sw, sh = lcd.getWindowSize()
   local page = getCurrentPage()
-  inavdash.layout = computeGridRects(sw, sh, page.grid or {}, page.table or {})
+  widget.layout = computeGridRects(sw, sh, page.grid or {}, page.table or {})
 end
 
-function inavdash.create()
+function widget.create()
 
     -- Telemetry
-    if not inavdash.sensors.telemetry then inavdash.sensors.telemetry = assert(loadfile("sensors/telemetry.lua"))()  end
+    if not widget.sensors.telemetry then widget.sensors.telemetry = assert(loadfile("sensors/telemetry.lua"))()  end
 
     -- Render modules
-    if not inavdash.render.telemetry then inavdash.render.telemetry = assert(loadfile("render/telemetry.lua"))() end
-    if not inavdash.render.ah then inavdash.render.ah = assert(loadfile("render/ah.lua"))() end
-    if not inavdash.render.gps then inavdash.render.gps = assert(loadfile("render/gps.lua"))() end
-    if not inavdash.render.gps_lock then inavdash.render.gps_lock = assert(loadfile("render/gps_lock.lua"))() end
-    if not inavdash.render.map then inavdash.render.map = assert(loadfile("render/map.lua"))() end
-    if not inavdash.render.flightmode then inavdash.render.flightmode = assert(loadfile("render/flightmode.lua"))() end
-    if not inavdash.render.hd then inavdash.render.hd = assert(loadfile("render/homedirection.lua"))() end
-    if not inavdash.render.hd_light then inavdash.render.hd_light = assert(loadfile("render/homedirection_light.lua"))() end
+    if not widget.render.telemetry then widget.render.telemetry = assert(loadfile("render/telemetry.lua"))() end
+    if not widget.render.ah then widget.render.ah = assert(loadfile("render/ah.lua"))() end
+    if not widget.render.gps then widget.render.gps = assert(loadfile("render/gps.lua"))() end
+    if not widget.render.gps_lock then widget.render.gps_lock = assert(loadfile("render/gps_lock.lua"))() end
+    if not widget.render.map then widget.render.map = assert(loadfile("render/map.lua"))() end
+    if not widget.render.flightmode then widget.render.flightmode = assert(loadfile("render/flightmode.lua"))() end
+    if not widget.render.hd then widget.render.hd = assert(loadfile("render/homedirection.lua"))() end
+    if not widget.render.hd_light then widget.render.hd_light = assert(loadfile("render/homedirection_light.lua"))() end
 
 
 end
 
-function inavdash.configure()
+function widget.configure()
     -- body
 end
 
-function inavdash.paint()
+function widget.paint()
 
     local LCD_WIDTH, LCD_HEIGHT = lcd.getWindowSize()
 
@@ -205,19 +207,19 @@ function inavdash.paint()
     lcd.drawFilledRectangle(0, 0, LCD_WIDTH, LCD_HEIGHT)
     
     -- Artificial Horizon
-    if inavdash.layout.ah then
-        inavdash.render.ah.paint()
+    if widget.layout.ah then
+        widget.render.ah.paint()
     end
 
     -- Map
-    if inavdash.layout.map then
-         inavdash.render.map.paint()
+    if widget.layout.map then
+         widget.render.map.paint()
     end            
 
-    if inavdash.render.telemetry then
+    if widget.render.telemetry then
 
         -- Flight Mode
-        if inavdash.layout.flightmode then        
+        if widget.layout.flightmode then        
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -226,11 +228,11 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.flightmode.paint(inavdash.layout.flightmode.x, inavdash.layout.flightmode.y, inavdash.layout.flightmode.w, inavdash.layout.flightmode.h, "Flight Mode", sensors['flightmode'] or 0, "", opts)
+            widget.render.flightmode.paint(widget.layout.flightmode.x, widget.layout.flightmode.y, widget.layout.flightmode.w, widget.layout.flightmode.h, "Flight Mode", sensors['flightmode'] or 0, "", opts)
         end
 
         -- Altitude
-        if inavdash.layout.altitude then        
+        if widget.layout.altitude then        
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -239,11 +241,11 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.altitude.x, inavdash.layout.altitude.y, inavdash.layout.altitude.w, inavdash.layout.altitude.h, "Altitude", sensors['altitude'] or 0, units['altitude'], opts)
+            widget.render.telemetry.paint(widget.layout.altitude.x, widget.layout.altitude.y, widget.layout.altitude.w, widget.layout.altitude.h, "Altitude", sensors['altitude'] or 0, units['altitude'], opts)
         end
 
         -- Vertical Speed
-        if inavdash.layout.vspeed then        
+        if widget.layout.vspeed then        
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -252,11 +254,11 @@ function inavdash.paint()
                 fontlabel = FONT_XS,
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.vspeed.x, inavdash.layout.vspeed.y, inavdash.layout.vspeed.w, inavdash.layout.vspeed.h, "Vspeed", sensors['vertical_speed'] or 0, units['vertical_speed'], opts)
+            widget.render.telemetry.paint(widget.layout.vspeed.x, widget.layout.vspeed.y, widget.layout.vspeed.w, widget.layout.vspeed.h, "Vspeed", sensors['vertical_speed'] or 0, units['vertical_speed'], opts)
         end
 
         -- Ground Speed
-         if inavdash.layout.groundspeed then       
+         if widget.layout.groundspeed then       
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -266,11 +268,11 @@ function inavdash.paint()
             }
         
 
-            inavdash.render.telemetry.paint(inavdash.layout.groundspeed.x, inavdash.layout.groundspeed.y, inavdash.layout.groundspeed.w, inavdash.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, units['groundspeed'], opts)
+            widget.render.telemetry.paint(widget.layout.groundspeed.x, widget.layout.groundspeed.y, widget.layout.groundspeed.w, widget.layout.groundspeed.h, "Speed", sensors['groundspeed'] or 0, units['groundspeed'], opts)
         end
 
         -- Distance
-        if inavdash.layout.heading then
+        if widget.layout.heading then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -280,11 +282,11 @@ function inavdash.paint()
                 widthAsciiFallback = true
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.heading.x, inavdash.layout.heading.y, inavdash.layout.heading.w, inavdash.layout.heading.h, "Heading", math.floor(sensors['heading'] or 0), units['heading'], opts)
+            widget.render.telemetry.paint(widget.layout.heading.x, widget.layout.heading.y, widget.layout.heading.w, widget.layout.heading.h, "Heading", math.floor(sensors['heading'] or 0), units['heading'], opts)
         end
 
         -- Distance
-        if inavdash.layout.distance then
+        if widget.layout.distance then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -294,11 +296,11 @@ function inavdash.paint()
                 widthAsciiFallback = true
             }
 
-            inavdash.render.telemetry.paint(inavdash.layout.distance.x, inavdash.layout.distance.y, inavdash.layout.distance.w, inavdash.layout.distance.h, "Distance", math.floor(sensors['gps_distancehome'] or 0), units['gps_distancehome'], opts)
+            widget.render.telemetry.paint(widget.layout.distance.x, widget.layout.distance.y, widget.layout.distance.w, widget.layout.distance.h, "Distance", math.floor(sensors['gps_distancehome'] or 0), units['gps_distancehome'], opts)
         end
 
         -- Voltage
-        if inavdash.layout.voltage then 
+        if widget.layout.voltage then 
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -308,11 +310,11 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.voltage.x, inavdash.layout.voltage.y, inavdash.layout.voltage.w, inavdash.layout.voltage.h, "Voltage", sensors['voltage'] or 0, units['voltage'], opts)
+            widget.render.telemetry.paint(widget.layout.voltage.x, widget.layout.voltage.y, widget.layout.voltage.w, widget.layout.voltage.h, "Voltage", sensors['voltage'] or 0, units['voltage'], opts)
         end
 
         -- Fuel
-        if inavdash.layout.fuel then
+        if widget.layout.fuel then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -322,11 +324,11 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.fuel.x, inavdash.layout.fuel.y, inavdash.layout.fuel.w, inavdash.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "mAh", opts)
+            widget.render.telemetry.paint(widget.layout.fuel.x, widget.layout.fuel.y, widget.layout.fuel.w, widget.layout.fuel.h, "Fuel", sensors['fuel'] or 0, units['fuel'] or "mAh", opts)
         end
 
         -- Current
-        if inavdash.layout.current then
+        if widget.layout.current then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -336,11 +338,11 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.current.x, inavdash.layout.current.y, inavdash.layout.current.w, inavdash.layout.current.h, "Current", sensors['current'] or 0, units['current'], opts)
+            widget.render.telemetry.paint(widget.layout.current.x, widget.layout.current.y, widget.layout.current.w, widget.layout.current.h, "Current", sensors['current'] or 0, units['current'], opts)
         end
 
         -- RSSI
-        if inavdash.layout.rssi then
+        if widget.layout.rssi then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -350,11 +352,11 @@ function inavdash.paint()
             }
 
 
-            inavdash.render.telemetry.paint(inavdash.layout.rssi.x, inavdash.layout.rssi.y, inavdash.layout.rssi.w, inavdash.layout.rssi.h, "RSSI", sensors['rssi'] or 0, units['rssi'], opts)
+            widget.render.telemetry.paint(widget.layout.rssi.x, widget.layout.rssi.y, widget.layout.rssi.w, widget.layout.rssi.h, "RSSI", sensors['rssi'] or 0, units['rssi'], opts)
         end
 
         -- Satellites
-        if inavdash.layout.satellites then
+        if widget.layout.satellites then
             local opts = {
                 colorbg = colors.background,
                 colorvalue = colors.foreground,
@@ -362,18 +364,18 @@ function inavdash.paint()
                 fontvalue = FONT_L,
                 fontlabel = FONT_XS,
             }
-            inavdash.render.telemetry.paint(inavdash.layout.satellites.x, inavdash.layout.satellites.y, inavdash.layout.satellites.w, inavdash.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
+            widget.render.telemetry.paint(widget.layout.satellites.x, widget.layout.satellites.y, widget.layout.satellites.w, widget.layout.satellites.h, "Satellites",sensors['satellites'] or 0, "", opts)
         end
 
-        if inavdash.layout.home_dir then inavdash.render.hd.paint() end
+        if widget.layout.home_dir then widget.render.hd.paint() end
 
-        if inavdash.layout.home_dir_light then inavdash.render.hd_light.paint() end
+        if widget.layout.home_dir_light then widget.render.hd_light.paint() end
 
     end
 
 
     -- GPS
-    if inavdash.layout.gps then
+    if widget.layout.gps then
         local opts = {
             colorbg = colors.background,
             colorvalue = colors.foreground,
@@ -384,11 +386,11 @@ function inavdash.paint()
             decimalPlaces = 4,
             widthAsciiFallback = true
         }
-        inavdash.render.gps.paint(inavdash.layout.gps.x, inavdash.layout.gps.y, inavdash.layout.gps.w, inavdash.layout.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
+        widget.render.gps.paint(widget.layout.gps.x, widget.layout.gps.y, widget.layout.gps.w, widget.layout.gps.h, "GPS",sensors['gps_latitude'], sensors['gps_longitude'], opts)
     end
 
     -- GPS Lock
-    if inavdash.layout.gps_lock then
+    if widget.layout.gps_lock then
         local opts = {
             images = {
                 red = "gfx/red.png",
@@ -397,12 +399,12 @@ function inavdash.paint()
             },
             colorbg = colors.background,
         }
-        inavdash.render.gps_lock.paint(inavdash.layout.gps_lock.x, inavdash.layout.gps_lock.y, inavdash.layout.gps_lock.w, inavdash.layout.gps_lock.h, sensors['gps_lock'], sensors['satellites'], opts)
+        widget.render.gps_lock.paint(widget.layout.gps_lock.x, widget.layout.gps_lock.y, widget.layout.gps_lock.w, widget.layout.gps_lock.h, sensors['gps_lock'], sensors['satellites'], opts)
     end
 
 end
 
-function inavdash.wakeup()
+function widget.wakeup()
     local colorMode
 
     if lcd.darkMode() then
@@ -415,10 +417,10 @@ function inavdash.wakeup()
 
     -- When darkMode flips, reload the HD image + clear rotation cache
     if colorMode ~= lastColourMode then
-        if inavdash.render and inavdash.render.hd and inavdash.render.hd.resetArrowCache then
+        if widget.render and widget.render.hd and widget.render.hd.resetArrowCache then
             -- use the themed image path from your table
-            inavdash.render.hd.resetArrowCache(colors.hd)
-            inavdash.render.hd_light.resetArrowCache(colors.hd_light)
+            widget.render.hd.resetArrowCache(colors.hd)
+            widget.render.hd_light.resetArrowCache(colors.hd_light)
         end
         lastColourMode = colorMode
     end   
@@ -427,23 +429,23 @@ function inavdash.wakeup()
     recomputeLayout()
 
     -- Check sensors
-    if inavdash.sensors and inavdash.sensors.telemetry then
-        inavdash.sensors.telemetry.wakeup()
+    if widget.sensors and widget.sensors.telemetry then
+        widget.sensors.telemetry.wakeup()
 
-        sensors['voltage'],       units['voltage']          = inavdash.sensors.telemetry.getSensor('voltage')
-        sensors['current'],       units['current']           = inavdash.sensors.telemetry.getSensor('current')
-        sensors['altitude'],      units['altitude']          = inavdash.sensors.telemetry.getSensor('altitude')
-        sensors['fuel'],          units['fuel']              = inavdash.sensors.telemetry.getSensor('fuel')
-        sensors['rssi'],          units['rssi']              = inavdash.sensors.telemetry.getSensor('rssi')
-        sensors['roll'],          units['roll']              = inavdash.sensors.telemetry.getSensor('roll')
-        sensors['pitch'],         units['pitch']             = inavdash.sensors.telemetry.getSensor('pitch')
-        sensors['heading'],       units['heading']           = inavdash.sensors.telemetry.getSensor('heading')
-        sensors['groundspeed'],   units['groundspeed']       = inavdash.sensors.telemetry.getSensor('groundspeed')
-        sensors['satellites'],    units['satellites']        = inavdash.sensors.telemetry.getSensor('satellites')
-        sensors['gps_latitude'],  units['gps_latitude']      = inavdash.sensors.telemetry.getSensor('gps_latitude')
-        sensors['gps_longitude'], units['gps_longitude']     = inavdash.sensors.telemetry.getSensor('gps_longitude')
-        sensors['flightmode'],    units['flightmode']         = inavdash.sensors.telemetry.getSensor('flightmode')
-        sensors['vertical_speed'], units['vertical_speed']     = inavdash.sensors.telemetry.getSensor('vertical_speed')
+        sensors['voltage'],       units['voltage']          = widget.sensors.telemetry.getSensor('voltage')
+        sensors['current'],       units['current']           = widget.sensors.telemetry.getSensor('current')
+        sensors['altitude'],      units['altitude']          = widget.sensors.telemetry.getSensor('altitude')
+        sensors['fuel'],          units['fuel']              = widget.sensors.telemetry.getSensor('fuel')
+        sensors['rssi'],          units['rssi']              = widget.sensors.telemetry.getSensor('rssi')
+        sensors['roll'],          units['roll']              = widget.sensors.telemetry.getSensor('roll')
+        sensors['pitch'],         units['pitch']             = widget.sensors.telemetry.getSensor('pitch')
+        sensors['heading'],       units['heading']           = widget.sensors.telemetry.getSensor('heading')
+        sensors['groundspeed'],   units['groundspeed']       = widget.sensors.telemetry.getSensor('groundspeed')
+        sensors['satellites'],    units['satellites']        = widget.sensors.telemetry.getSensor('satellites')
+        sensors['gps_latitude'],  units['gps_latitude']      = widget.sensors.telemetry.getSensor('gps_latitude')
+        sensors['gps_longitude'], units['gps_longitude']     = widget.sensors.telemetry.getSensor('gps_longitude')
+        sensors['flightmode'],    units['flightmode']         = widget.sensors.telemetry.getSensor('flightmode')
+        sensors['vertical_speed'], units['vertical_speed']     = widget.sensors.telemetry.getSensor('vertical_speed')
         
 
         if sensors['gps_lock'] == false then
@@ -499,8 +501,8 @@ function inavdash.wakeup()
         local lat, lon  = sensors['gps_latitude'], sensors['gps_longitude']
         local hlat, hlon = sensors['home_latitude'], sensors['home_longitude']
         if sensors['gps_lock'] and lat and lon and hlat and hlon and hlat ~= 0 and hlon ~= 0 then
-            local dx, dy = inavdash.render.map.enu_dxdy(lat, lon, hlat, hlon) -- meters East/North
-            sensors['gps_distancehome'] = inavdash.render.map.hypot(dx, dy)   -- meters
+            local dx, dy = widget.render.map.enu_dxdy(lat, lon, hlat, hlon) -- meters East/North
+            sensors['gps_distancehome'] = widget.render.map.hypot(dx, dy)   -- meters
             units['gps_distancehome'] = "m"
         else
             sensors['gps_distancehome'] = 0
@@ -512,18 +514,18 @@ function inavdash.wakeup()
     end
 
 
-    if inavdash.render.ah then
+    if widget.render.ah then
         local ahconfig = {
             ppd = 2.0,
             show_altitude = true,
             show_groundspeed = true,
         }
-        if inavdash.render.ah then
-            inavdash.render.ah.wakeup(sensors, units, inavdash.layout.ah.x, inavdash.layout.ah.y, inavdash.layout.ah.w, inavdash.layout.ah.h, ahconfig)
+        if widget.render.ah then
+            widget.render.ah.wakeup(sensors, units, widget.layout.ah.x, widget.layout.ah.y, widget.layout.ah.w, widget.layout.ah.h, ahconfig)
         end
     end
 
-    if inavdash.render.map then
+    if widget.render.map then
         local opts = {
             north_up = true,
             show_grid = true,
@@ -559,14 +561,14 @@ function inavdash.wakeup()
             home_lon    = sensors['home_longitude'], 
         }
 
-        local box = inavdash.layout.map
+        local box = widget.layout.map
         if box then
-            inavdash.render.map.wakeup(box.x, box.y, box.w, box.h, s, units,opts)
+            widget.render.map.wakeup(box.x, box.y, box.w, box.h, s, units,opts)
         end
     end
 
-    if inavdash.layout.home_dir then
-        local box = inavdash.layout.home_dir
+    if widget.layout.home_dir then
+        local box = widget.layout.home_dir
         local s = {
             latitude  = sensors['gps_latitude'],
             longitude = sensors['gps_longitude'],
@@ -587,12 +589,12 @@ function inavdash.wakeup()
             flip_180 = false,         -- set true if your hd.png points DOWN by default
         }
         if box then
-            inavdash.render.hd.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
+            widget.render.hd.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
         end
     end
 
-    if inavdash.layout.home_dir_light then
-        local box = inavdash.layout.home_dir_light
+    if widget.layout.home_dir_light then
+        local box = widget.layout.home_dir_light
         local s = {
             latitude  = sensors['gps_latitude'],
             longitude = sensors['gps_longitude'],
@@ -613,7 +615,7 @@ function inavdash.wakeup()
             flip_180 = false,         -- set true if your hd.png points DOWN by default
         }
         if box then
-            inavdash.render.hd_light.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
+            widget.render.hd_light.wakeup(box.x, box.y, box.w, box.h, s, units, opts)
         end
     end
 
@@ -621,7 +623,7 @@ function inavdash.wakeup()
         -- Flight Mode change detection with audio playback
         do
         local fm   = sensors['flightmode']
-        local prev = inavdash._prev_flightmode
+        local prev = widget._prev_flightmode
 
         -- NEW: on transition to DISARMED, clear home + reset widgets
 
@@ -635,7 +637,7 @@ function inavdash.wakeup()
         if fm and (prev == nil or fm ~= prev) then
             local file = string.format("audio/en/default/fm-%d.wav", fm)
             system.playFile(file)
-            inavdash._prev_flightmode = fm
+            widget._prev_flightmode = fm
         end
         end
 
@@ -647,7 +649,7 @@ function inavdash.wakeup()
 
 end
 
-function inavdash.read()
+function widget.read()
     local storedPage = storage.read("currentPage") 
     if storedPage then
         currentPage = tonumber(storedPage)
@@ -656,11 +658,11 @@ function inavdash.read()
     end
 end
 
-function inavdash.write()
+function widget.write()
     storage.write("currentPage", tostring(currentPage or 1))
 end
 
-function inavdash.event(widget, category, value, x, y)
+function widget.event(widget, category, value, x, y)
     if not lcd.hasFocus() then
         return false
     end
@@ -690,12 +692,8 @@ function inavdash.event(widget, category, value, x, y)
     return false
 end
 
-
-
-
-
-function inavdash.menu()
+function widget.menu()
     return {}
 end
 
-return inavdash
+return widget

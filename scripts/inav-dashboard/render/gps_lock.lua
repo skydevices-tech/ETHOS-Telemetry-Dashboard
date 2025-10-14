@@ -1,3 +1,4 @@
+local inavdash = require("inavdash")
 local render = {}
 
 local _bmpCache = {}

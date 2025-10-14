@@ -1,3 +1,5 @@
+local inavdash = require("inavdash")
+
 -- flightmode.lua
 -- Unifies CRSF / S.Port flight mode inputs into a single numeric mode code.
 
