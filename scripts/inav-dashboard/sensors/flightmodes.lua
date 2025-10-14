@@ -7,20 +7,20 @@ local M = {}
 
 -- Public enum
 M.MODE = {
-  DISARMED         = 0,
-  READY_TO_ARM     = 1,
-  ARMING_PREVENTED = 2,
-  ACRO             = 10,
-  ANGLE            = 11,
-  HORIZON          = 12,
-  PASSTHRU         = 13,
-  ALT_HOLD_ANGLE   = 20,
-  POS_HOLD_ANGLE   = 21,
-  WAYPOINT         = 22,
-  RTH              = 23,
-  CRUISE_ANGLE     = 26,
-  CRUISE_HORIZON   = 27,
-  FAILSAFE         = 99,
+  DISARMED          = 0,
+  READY_TO_ARM      = 1,
+  ARMING_PREVENTED  = 2,
+  ACRO              = 10,
+  ANGLE             = 11,
+  HORIZON           = 12,
+  PASSTHRU          = 13,
+  ALT_HOLD_ANGLE    = 20,
+  POS_HOLD_ANGLE    = 21,
+  WAYPOINT          = 22,
+  RTH               = 23,
+  COURSE_HOLD       = 26,
+  CRUISE            = 27,
+  FAILSAFE          = 99,
 }
 
 -- Internal state for HRST carry-over
@@ -65,21 +65,21 @@ local function crsfToABCDE(fm)
   elseif fm == "MANU" then
     D, E = 4, 4
   elseif fm == "AH" then
-    C, D, E = 2, 1, 4            -- altitude hold + angle
+    C, D, E = 2, 1, 4           -- altitude hold + angle
   elseif fm == "HOLD" then
-    C, D, E = 4, 1, 4            -- position hold + angle
+    C, D, E = 4, 1, 4           -- position hold + angle
   elseif fm == "WP" then
-    B, D, E = 2, 1, 4            -- waypoint + angle
+    B, D, E = 2, 1, 4           -- waypoint + angle
   elseif fm == "RTH" then
-    B, C, D, E = 1, 6, 1, 4      -- RTH + alt+pos hold + angle
+    B, C, D, E = 1, 6, 1, 4     -- RTH + alt+pos hold + angle
   elseif fm == "!FS!" then
-    A, E = 4, 4                  -- failsafe + armed
+    A, E = 4, 4                 -- failsafe + armed
   elseif fm == "CRS" or fm == "CRSH" then
-    C, D, E = 7, 1, 4            -- heading+alt+pos + angle
+    B = 8                       -- Course Hold
   elseif fm == "3CRS" or fm == "CRUZ" then
-    C, D, E = 7, 2, 4            -- cruise + horizon
+    B, C = 8, 2                 -- Course Hold + Alt Hold
   elseif fm == "HRST" then
-    return nil                   -- caller keeps last ABCDE/mode
+    return nil                  -- caller keeps last ABCDE/mode
   else
     E = 0
   end
@@ -107,20 +107,21 @@ local function mapABCDEtoMode(abcde)
   if bit_is_set(B,1) then return M.MODE.RTH      end -- RTH
   if bit_is_set(B,2) then return M.MODE.WAYPOINT end -- Waypoint
 
-  local angle    = bit_is_set(D,1)
-  local horizon  = bit_is_set(D,2)
-  local passthru = bit_is_set(D,4)
-  local heading  = bit_is_set(C,1)
-  local alt      = bit_is_set(C,2)
-  local pos      = bit_is_set(C,4)
+  local angle       = bit_is_set(D,1)
+  local horizon     = bit_is_set(D,2)
+  local passthru    = bit_is_set(D,4)
+  local heading     = bit_is_set(C,1)
+  local alt         = bit_is_set(C,2)
+  local pos         = bit_is_set(C,4)
+  local course_hold = bit_is_set(B,8)
 
-  if heading and alt and pos and angle   then return M.MODE.CRUISE_ANGLE   end
-  if heading and alt and pos and horizon then return M.MODE.CRUISE_HORIZON end
-  if pos and angle then return M.MODE.POS_HOLD_ANGLE end
-  if alt and angle then return M.MODE.ALT_HOLD_ANGLE end
-  if passthru then return M.MODE.PASSTHRU end
-  if horizon  then return M.MODE.HORIZON  end
-  if angle    then return M.MODE.ANGLE    end
+  if course_hold and alt  then return M.MODE.CRUISE end
+  if course_hold          then return M.MODE.COURSE_HOLD end
+  if pos and angle        then return M.MODE.POS_HOLD_ANGLE end
+  if alt and angle        then return M.MODE.ALT_HOLD_ANGLE end
+  if passthru             then return M.MODE.PASSTHRU end
+  if horizon              then return M.MODE.HORIZON end
+  if angle                then return M.MODE.ANGLE end
 
   return M.MODE.ACRO
 end
