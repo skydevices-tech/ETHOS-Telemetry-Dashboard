@@ -176,14 +176,9 @@ local sensorTable = {
         },
         autoCreate = true,
         transform = function(value)
-            if currentTelemetryType == "sport" then
                 if value then
                     return -value
                 end
-                return value
-            else
-                return value
-            end
         end
     },
 
@@ -198,13 +193,8 @@ local sensorTable = {
         },
         autoCreate = true,
         transform = function(value)
-            if currentTelemetryType == "sport" then
-                if value then
-                    return -value
-                end
-                return value
-            else
-                return value
+            if value then
+                return -value
             end
         end        
     },    
