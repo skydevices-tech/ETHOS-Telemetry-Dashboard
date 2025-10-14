@@ -159,6 +159,7 @@ local function build_frame(sensors, units, x, y, w, h, opts)
     -- pick unit labels from provided `units` table (fallbacks if missing)
     local alt_unit = (units and units["altitude"]) or "m"
     local gs_unit  = (units and units["groundspeed"]) or "kt"
+    -- altitude bar
     if show_altitude then
         local barX, barY = x + w - 10, y + 5
         local barH       = h - 10
@@ -166,9 +167,14 @@ local function build_frame(sensors, units, x, y, w, h, opts)
         bars.alt = {
             rect  = {barX, barY, 6, barH},
             fill  = {barX, barY + barH - fillH, 6, fillH},
-            text  = {x = barX - 4, y = barY + barH - fillH - 6, str = string.format("%d %s", altitude, alt_unit), fl = RIGHT + FONT_XS}
+            -- center text vertically
+            text  = {x = barX - 4, y = barY + barH/2 - 4,
+                    str = string.format("%d %s", altitude, alt_unit),
+                    fl = RIGHT + FONT_XS}
         }
     end
+
+    -- groundspeed bar
     if show_groundspeed then
         local barX, barY = x + 4, y + 5
         local barH       = h - 10
@@ -176,7 +182,10 @@ local function build_frame(sensors, units, x, y, w, h, opts)
         bars.gs = {
             rect  = {barX, barY, 6, barH},
             fill  = {barX, barY + barH - fillH, 6, fillH},
-            text  = {x = barX + 10, y = barY + barH - fillH - 6, str = string.format("%d %s", groundspeed, gs_unit), fl = LEFT + FONT_XS}
+            -- center text vertically
+            text  = {x = barX + 10, y = barY + barH/2 - 4,
+                    str = string.format("%d %s", groundspeed, gs_unit),
+                    fl = LEFT + FONT_XS}
         }
     end
 
