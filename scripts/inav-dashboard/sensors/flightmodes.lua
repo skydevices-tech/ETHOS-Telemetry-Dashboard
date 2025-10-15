@@ -49,41 +49,83 @@ local function pack_ABCDE(A,B,C,D,E)
 end
 
 -- CRSF string -> ABCDE (A,B,C,D,E digits)
+-- Notes:
+--   - E bit 4 = ARMED; without this, mapABCDEtoMode() treats the craft as disarmed.
+--   - A bit 4 = FAILSAFE (wins over everything else).
+--   - We encode “Angle/Horizon/Passthru” in D, “Heading/Alt/Pos holds” in C,
+--     and higher-level nav modes in B.
 local function crsfToABCDE(fm)
   if not fm then return 0 end
   local A,B,C,D,E = 0,0,0,0,0
+
   if fm == "!ERR" or fm == "WAIT" then
+    -- Disarmed + arming prevented/unknown
     E = 2
+
   elseif fm == "OK" then
+    -- Disarmed + ready to arm
     E = 1
+
+  -- ----- Flight (armed) attitude modes -----
   elseif fm == "ACRO" or fm == "AIR" then
+    -- Acro (no angle aids) + armed
     D, E = 0, 4
+
   elseif fm == "ANGL" or fm == "STAB" then
+    -- Angle + armed
     D, E = 1, 4
+
   elseif fm == "HOR" then
+    -- Horizon + armed
     D, E = 2, 4
+
   elseif fm == "MANU" then
+    -- Passthru/Manual + armed
     D, E = 4, 4
+
+  -- ----- Holds (armed) -----
   elseif fm == "AH" then
-    C, D, E = 2, 1, 4           -- altitude hold + angle
+    -- Alt-hold + angle + armed
+    C, D, E = 2, 1, 4
+
   elseif fm == "HOLD" then
-    C, D, E = 4, 1, 4           -- position hold + angle
+    -- Pos-hold + angle + armed
+    C, D, E = 4, 1, 4
+
+  -- ----- Navigation (armed) -----
   elseif fm == "WP" then
-    B, D, E = 2, 1, 4           -- waypoint + angle
+    -- Waypoint + angle + armed
+    B, D, E = 2, 1, 4
+
   elseif fm == "RTH" then
-    B, C, D, E = 1, 6, 1, 4     -- RTH + alt+pos hold + angle
+    -- RTH + alt+pos hold + angle + armed
+    B, C, D, E = 1, 6, 1, 4
+
   elseif fm == "!FS!" then
-    A, E = 4, 4                 -- failsafe + armed
+    -- Failsafe + armed (A bit 4)
+    A, E = 4, 4
+
+  -- ----- Course/Cruise (armed) -----
   elseif fm == "CRS" or fm == "CRSH" then
-    B = 8                       -- Course Hold
+    -- Course Hold + armed
+    -- (B bit 8 flags course-hold; E bit 4 is required for "armed")
+    B, E = 8, 4
+
   elseif fm == "3CRS" or fm == "CRUZ" then
-    B, C = 8, 2                 -- Course Hold + Alt Hold
+    -- Cruise = Course Hold + Alt Hold + armed
+    B, C, E = 8, 2, 4
+
+  -- ----- Special / carry-over -----
   elseif fm == "HRST" then
-    return nil                  -- caller keeps last ABCDE/mode
+    -- nil tells caller to keep last ABCDE/mode
+    return nil
+
   else
+    -- Unknown state -> treat as disarmed/unknown
     E = 0
   end
-  return pack_ABCDE(A,B,C,D,E)
+
+  return (A or 0)*10000 + (B or 0)*1000 + (C or 0)*100 + (D or 0)*10 + (E or 0)
 end
 
 -- ABCDE -> single numeric mode
