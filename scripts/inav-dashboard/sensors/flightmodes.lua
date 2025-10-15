@@ -75,9 +75,9 @@ local function crsfToABCDE(fm)
   elseif fm == "!FS!" then
     A, E = 4, 4                 -- failsafe + armed
   elseif fm == "CRS" or fm == "CRSH" then
-    B = 8                       -- Course Hold
+     B, E = 8, 4                       -- Course Hold
   elseif fm == "3CRS" or fm == "CRUZ" then
-    B, C = 8, 2                 -- Course Hold + Alt Hold
+    B, C, E = 8, 2, 4                -- Course Hold + Alt Hold
   elseif fm == "HRST" then
     return nil                  -- caller keeps last ABCDE/mode
   else
