@@ -19,19 +19,6 @@ jobs:
         SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
         echo "GIT_VER=commit-${SHORT_SHA}" >> $GITHUB_ENV
 
-    - name: Update version and config in main.lua
-      run: |
-        # Use GIT_VER set in previous step
-        sed -i 's/\(config.version = {[^}]*suffix = \)"[^"]*"/\1"${{ env.GIT_VER }}"/' scripts/inav-dashboard/main.lua
-
-        # Set logging settings
-        sed -i 's/\(config.logLevel= \)".*"/\1"off"/' scripts/inav-dashboard/main.lua
-        sed -i 's/\(config.logToFile = \)[^ ]*/\1false/' scripts/inav-dashboard/main.lua
-        sed -i 's/\(config.logMSP = \)[^ ]*/\1false/' scripts/inav-dashboard/main.lua
-
-        # Show updated file (for verification)
-        grep 'config\.' scripts/inav-dashboard/main.lua
-
     - name: Create inav-dashboard-ethos-commit-<short_sha>.zip (entire scripts folder)
       run: |
         zip -q -r -9 "inav-dashboard-ethos-${{ env.GIT_VER }}.zip" scripts
