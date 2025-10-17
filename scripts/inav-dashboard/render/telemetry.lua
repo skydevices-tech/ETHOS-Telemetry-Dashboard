@@ -1,14 +1,17 @@
+--[[
+  Copyright (C) 2025 Rob Thomson
+  GPLv3 — https://www.gnu.org/licenses/gpl-3.0.en.html
+]] --
+
 local inavdash = require("inavdash")
 local render = {}
 local radio = assert(loadfile("radios.lua"))()
 
--- optional: ASCII-only skeleton for width calc when fonts mis-measure multibyte glyphs
 local function ascii_skeleton(s)
     s = (s or ""):gsub("°", "x")
     return s:gsub("[\128-\255]", "x")
 end
 
--- Helper: pick the largest font where (value + gap + unit) fits the box
 local function chooseFontForPair(valueStr, unitStr, gap, maxW, maxH, fonts, useAscii)
     local function measureWith(font)
         lcd.font(font)
@@ -28,7 +31,7 @@ local function chooseFontForPair(valueStr, unitStr, gap, maxW, maxH, fonts, useA
         if cw <= maxW and ch <= maxH then
             best = {font = f, cw = cw, ch = ch, vw = vw, vh = vh, uw = uw, uh = uh}
         else
-            break -- fonts are ordered small→large; stop when it no longer fits
+            break
         end
     end
     lcd.font(best.font)
@@ -36,27 +39,21 @@ local function chooseFontForPair(valueStr, unitStr, gap, maxW, maxH, fonts, useA
 end
 
 function render.paint(x, y, w, h, label, value, unit, opts)
-    -- fallbacks
+
     if value == nil then value = "-" end
     opts = opts or {}
-    if not opts.colorbg    then opts.colorbg    = lcd.RGB(0, 0, 0) end
+    if not opts.colorbg then opts.colorbg = lcd.RGB(0, 0, 0) end
     if not opts.colorvalue then opts.colorvalue = lcd.RGB(255, 255, 255) end
-    if not opts.colorlabel then
-        opts.colorlabel = (lcd.darkMode() and lcd.RGB(154,154,154)) or lcd.RGB(77,73,77)
-    end
+    if not opts.colorlabel then opts.colorlabel = (lcd.darkMode() and lcd.RGB(154, 154, 154)) or lcd.RGB(77, 73, 77) end
     if opts.widthAsciiFallback == nil then opts.widthAsciiFallback = false end
 
-    -- background
     lcd.color(opts.colorbg)
     lcd.drawFilledRectangle(x, y, w, h)
 
-    local TEXT_COLOR = (lcd.darkMode() and lcd.RGB(255,255,255)) or lcd.RGB(77,73,77)
+    local TEXT_COLOR = (lcd.darkMode() and lcd.RGB(255, 255, 255)) or lcd.RGB(77, 73, 77)
 
     local offsetY = 0
 
-    -----------------------------------------------------------------------
-    -- Title
-    -----------------------------------------------------------------------
     if label and label ~= "" then
         local fontsTitle = radio.fontTitle or {FONT_XXS, FONT_XS}
         local maxWTitle, maxHTitle = w * 0.9, h
@@ -72,31 +69,25 @@ function render.paint(x, y, w, h, label, value, unit, opts)
         offsetY = lh - 3
     end
 
-    -----------------------------------------------------------------------
-    -- Value + Unit as a combined block
-    -----------------------------------------------------------------------
     local valueStr = tostring(value)
-    local unitStr  = unit and tostring(unit) or ""
-    local gap      = radio.unitGap or 4
+    local unitStr = unit and tostring(unit) or ""
+    local gap = radio.unitGap or 4
     local fontsValue = radio.fontValue or {FONT_XXS, FONT_XS, FONT_S, FONT_M, FONT_L}
 
-    -- fit inside 90% width and remaining height
     local maxVW, maxVH = w * 0.9, h - offsetY
     local chosen = chooseFontForPair(valueStr, unitStr, gap, maxVW, maxVH, fontsValue, opts.widthAsciiFallback)
 
-    -- center the combined block
     local startX = x + (w - chosen.cw) / 2
-    local topY   = y + offsetY + ( (h - offsetY) - chosen.ch ) / 2
+    local topY = y + offsetY + ((h - offsetY) - chosen.ch) / 2
 
     lcd.color(TEXT_COLOR)
-    -- draw value
+
     lcd.drawText(startX, topY, valueStr)
-    -- draw unit (if any), aligned to the same baseline/top
+
     if unitStr ~= "" then
         local unitX = startX + chosen.vw + gap
         lcd.drawText(unitX, topY, unitStr)
     end
 end
-
 
 return render
