@@ -40,9 +40,9 @@ local function crsfToModeID(value)
         return M.MODE.ERROR
     elseif value == "WAIT" then
         return M.MODE.WAIT
-    elseif value == "AIR" then
-        return M.MODE.ACRO_AIR
-    elseif value == "ACRO" then
+--    elseif value == "AIR" then
+--        return M.MODE.ACRO_AIR
+    elseif value == "ACRO" or value == "AIR" then
         return M.MODE.ACRO
     elseif value == "!FS!" then
         return M.MODE.FAILSAFE
